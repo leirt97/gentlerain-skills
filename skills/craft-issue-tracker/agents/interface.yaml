@@ -1,0 +1,20 @@
+interface:
+  display_name: Craft 问题跟踪
+  short_description: 创建项目问题表，维护状态和多轮修复日志
+  default_prompt: 使用 $craft-issue-tracker 管理当前项目的 Craft 问题，先读取目标和 schema，再执行并回读验证。
+compatibility:
+  canonical_format: agent-skills
+  adapter_targets:
+  - generic
+  activation:
+    mode: manual
+    paths: []
+  execution:
+    context: inline
+    shell: bash
+  trust:
+    source_tier: local
+    remote_inline_execution: forbid
+    remote_metadata_policy: allow-metadata-only
+  degradation:
+    generic: agent-skills-source

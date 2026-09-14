@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rename Material Assets"
+  short_description: "Extract UI slices and rename folders and files"
+  default_prompt: "Use $rename-material-assets to extract and semantically rename the UI assets in the provided directory."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "单缺陷修复 SOP"
+  short_description: "按证据诊断、先红后绿、分层验证和精确提交完成单项缺陷修复"
+  default_prompt: "Use $single-defect-fix-sop to diagnose, fix, verify, and prepare this numbered defect for review."

@@ -1,0 +1,38 @@
+{
+  "threshold": 0.65,
+  "positive_concepts": {
+    "craft": {
+      "weight": 0.4,
+      "phrases": [
+        "Craft"
+      ]
+    },
+    "issues": {
+      "weight": 0.6,
+      "phrases": [
+        "问题跟踪",
+        "问题表",
+        "问题状态",
+        "修复日志",
+        "未完成问题"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "excluded": {
+      "weight": 0.8,
+      "exclusive": true,
+      "phrases": [
+        "Skill 库",
+        "翻译",
+        "代码",
+        "外部业务系统",
+        "创建一个 Skill"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "craft",
+    "issues"
+  ]
+}

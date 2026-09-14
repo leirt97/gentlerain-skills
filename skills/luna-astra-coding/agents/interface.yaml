@@ -1,0 +1,18 @@
+interface:
+  display_name: "当前模型优先 · Astra 按需委派"
+  short_description: "当前会话模型实现和验证，自主权衡是否委派全新 Astra"
+  default_prompt: "使用 $luna-astra-coding：当前会话模型默认实现并验证，在质量达标前提下自主判断是否值得委派全新 Astra。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets: ["openai"]
+  activation:
+    mode: "manual"
+  execution:
+    context: "inline"
+    shell: "bash"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"

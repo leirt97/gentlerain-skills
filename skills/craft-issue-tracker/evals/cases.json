@@ -1,0 +1,20 @@
+{
+  "should_trigger": [
+    "在 Craft 创建问题跟踪表",
+    "Craft 问题状态更新为处理中",
+    "Craft 多轮修复日志整理",
+    "从模板新建 Craft 问题表",
+    "迁移未完成问题到 Craft"
+  ],
+  "should_not_trigger": [
+    "修复 Vue 地图代码",
+    "同步 Craft Skill 库",
+    "翻译 Craft 文档",
+    "在外部业务系统提交缺陷",
+    "创建一个 Skill"
+  ],
+  "near_neighbor": [
+    "在 Craft 整理会议记录",
+    "帮我推荐问题管理工具"
+  ]
+}

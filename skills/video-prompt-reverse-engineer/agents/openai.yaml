@@ -1,0 +1,4 @@
+interface:
+  display_name: "视频提示词反推"
+  short_description: "从参考视频证据反推快速版或逐镜头的 AI 生成提示词"
+  default_prompt: "使用 $video-prompt-reverse-engineer 分析我上传的视频，并输出可直接用于生成的视频提示词。"
