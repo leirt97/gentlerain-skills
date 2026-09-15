@@ -1,6 +1,6 @@
 ---
 name: gemini-computer-use
-description: ChatGPT 桌面端专用。Delegate browser or native-app UI work to one Gemini High task and collect its result within three attempts. codex-with-chatgpt browser phases follow that Skill.
+description: ChatGPT/Codex 桌面端专用。Delegate browser or native-app UI work to one Gemini High task and collect its result within three attempts. codex-with-chatgpt browser phases follow that Skill.
 ---
 
 # Gemini Computer Use delegation
