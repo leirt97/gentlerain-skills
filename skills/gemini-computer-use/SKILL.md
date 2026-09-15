@@ -1,17 +1,23 @@
 ---
 name: gemini-computer-use
-description: ChatGPT/Codex 桌面端专用。Delegate browser or native-app UI work to one Gemini High task and collect its result within three attempts. codex-with-chatgpt browser phases follow that Skill.
+description: ChatGPT/Codex 桌面端专用。For authorized browser or native-app UI work, use one user-visible projectless Codex Thread created with `mcp__codex_app__create_thread` using `gemini-3.8-flash-high`, then collect its result within three attempts. codex-with-chatgpt browser phases follow this Skill.
 ---
 
 # Gemini Computer Use delegation
 
 On other hosts, report this Skill unavailable and end the UI operation.
 
+## Hard routing boundary
+
+This Skill's UI operator is a user-visible, independent Codex Thread created through `mcp__codex_app__create_thread`. When the user has authorized the current UI operation, that authorization also covers creating this required projectless Thread; no second approval is needed when the live schema and higher-priority platform rules permit it. Without authorization for the UI operation, do not create the Thread.
+
+The main task never operates the UI directly and never delegates this phase through `collaboration.spawn_agent`, an ordinary subagent or another UI operator. If `mcp__codex_app__create_thread` is unavailable or explicitly fails, report the Skill unavailable and end the UI operation; do not silently switch to another UI operator.
+
 ## 1. Assign one operator
 
 The main task owns planning, user communication, non-UI work and final business review. One Gemini task owns the complete UI phase, including recovery, waits and verification. Reuse it for the same goal and surface; an existing Gemini operator executes directly.
 
-When authorized and supported by the live schema, call `mcp__codex_app__create_thread` with `model: "gemini-3.8-flash-high"`, `thinking: "high"`, `target: {type: "projectless"}`, a concrete title and the complete brief below. Record the ready threadId, hostId, surface IDs and attempt N/3, and emit the host's created-thread directive.
+With the authorization above and a supported live schema, call `mcp__codex_app__create_thread` with `model: "gemini-3.8-flash-high"`, `thinking: "high"`, `target: {type: "projectless"}`, a concrete title and the complete brief below. Record the ready threadId, hostId, surface IDs and attempt N/3, and emit the host's created-thread directive.
 
 ## 2. Give the complete UI goal
 
