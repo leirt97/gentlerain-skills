@@ -1,5 +1,5 @@
 display-name-zh: Gemini 界面操作委派
-version: 0.3.0
+version: 0.3.1
 tag-en: Platform Tools
 tag-cn: 平台工具
 summary-en: Delegate UI operations to a Gemini chat, preferring ego-browser and ego lite for external browsing.
