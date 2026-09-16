@@ -1,4 +1,4 @@
 interface:
   display_name: Craft 问题跟踪
-  short_description: 创建项目问题表，按来源生成编号，维护状态和多轮修复日志
-  default_prompt: 使用 $craft-issue-tracker 管理当前项目的 Craft 问题，先读取目标、schema 和来源，按编号契约执行并回读验证。
+  short_description: 创建项目问题表，统一登记编号，维护状态和多轮修复日志
+  default_prompt: 使用 $craft-issue-tracker 管理当前项目的 Craft 问题，先读取目标、schema、来源和中央编号登记合集，按编号契约执行并回读验证。

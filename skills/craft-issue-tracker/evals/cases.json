@@ -6,7 +6,8 @@
     "从模板新建 Craft 问题表",
     "迁移未完成问题到 Craft",
     "给 Craft 问题补充编号",
-    "按创建时间生成 Craft 问题编号"
+    "按创建日期和序号生成 Craft 问题编号",
+    "为多个 Craft 问题合集分配全局编号"
   ],
   "should_not_trigger": [
     "修复 Vue 地图代码",
