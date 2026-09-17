@@ -52,4 +52,4 @@ node "${CRAFT_SKILL_LIBRARY_DIR}/update.mjs" sync --patch-file /absolute/task/wo
 
 上游来源和名称都相符才合并本地与 Craft 条目；同名不同内容分别保留，未知安装身份标为“待核实”。
 
-API/CLI 无法完成且用户明确要求的 Craft UI 操作，按 `gemini-computer-use` 处理。
+先按具体操作的 API 边界走 API；CLI 未封装不代表 Craft API 不支持。只有目标能力未被 API 暴露或无法由 API 回读证明，且用户明确要求 UI 操作时，按 `gemini-computer-use` 处理。
