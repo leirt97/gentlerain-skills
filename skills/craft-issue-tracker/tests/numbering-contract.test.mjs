@@ -5,6 +5,7 @@ import test from 'node:test'
 const workflow = await readFile(new URL('../references/workflow.md', import.meta.url), 'utf8')
 const apiNotes = await readFile(new URL('../references/api-notes.md', import.meta.url), 'utf8')
 const skillLibrary = await readFile(new URL('../../craft-skill-library/SKILL.md', import.meta.url), 'utf8')
+const trackerSkill = await readFile(new URL('../SKILL.md', import.meta.url), 'utf8')
 
 test('Craft user issue numbers use the global daily registry contract', () => {
     assert.match(workflow, /DYYMMDDNNN/)
@@ -22,4 +23,10 @@ test('Craft collection capability distinguishes API creation from UI-only config
     assert.match(apiNotes, /CLI 未封装.*不等于 Craft API 不支持/)
     assert.match(apiNotes, /模板副本、表格\/看板.*API 未暴露/)
     assert.match(skillLibrary, /CLI 未封装不代表 Craft API 不支持/)
+})
+
+test('Craft readback preserves source media evidence', () => {
+    assert.match(trackerSkill, /sourceMedia/)
+    assert.match(trackerSkill, /媒体块的字段标签、原始顺序、数量/)
+    assert.match(trackerSkill, /媒体清单和块回读作为内容证据/)
 })
