@@ -1,11 +1,11 @@
 display-name-zh: Gemini 界面操作委派
-version: 0.3.1
+version: 0.4.0
 tag-en: Platform Tools
 tag-cn: 平台工具
-summary-en: Delegate UI operations to a Gemini chat, preferring ego-browser and ego lite for external browsing.
-summary-cn: 由 Gemini 独立聊天执行界面操作，外部浏览器优先使用 ego-browser 技能和 ego lite，主聊天持续沟通并验收。
+summary-en: Delegate authorized UI operations to one user-visible Gemini operator task, preferring ego-browser and Ego Lite for external browsing.
+summary-cn: 将已授权的界面操作交给一个用户可见的 Gemini 操作任务；外部浏览器优先使用 ego-browser 和 Ego Lite，由主任务持续沟通并验收。
 complete-tags-en: [Platform Tools]
 complete-tags-cn: [平台工具]
-desc-en: This personal skill coordinates browser and native application tasks through a Gemini 3.8 Flash High operator chat. The user supplies the desired outcome and any browser, app, or authorization constraints. The main agent prepares a bounded brief, dispatches the selected model, forwards corrections, and evaluates observations returned by the same operator. The operator performs UI inspection and interaction directly and returns the final state, completed actions, evidence, and unresolved blockers. The resulting workflow preserves a single UI owner while keeping user communication with the main agent. It requires host support for the selected model and operator chat UI tools; it does not provide or install those capabilities.
-desc-cn: 这项个人技能用于将浏览器和原生应用界面操作交给 Gemini 3.8 Flash High 独立聊天执行。用户提供预期结果以及浏览器、应用和授权限制，主代理整理任务说明、派发指定模型、持续转达纠正，并核验同一个操作代理返回的观察。独立聊天直接读取和操作界面，返回最后状态、已完成动作、证据及阻塞。该流程保持单一界面操作者，并由主代理统一与用户沟通；需要宿主支持指定模型、独立聊天和界面工具，本技能本身不安装这些能力。
+desc-en: This personal skill coordinates authorized browser and native-application work through one user-visible Gemini operator task. The user supplies the desired outcome and any browser, app, or authorization constraints. The main agent prepares a bounded brief, forwards corrections, and evaluates observations returned by the same operator. The operator performs UI inspection and interaction directly and returns the final state, completed actions, evidence, and unresolved blockers. The workflow preserves a single UI owner while keeping user communication with the main agent. It requires host support for the configured operator model and UI tools; it does not provide or install those capabilities.
+desc-cn: 这项个人技能用于将已授权的浏览器和原生应用界面操作交给一个用户可见的 Gemini 操作任务。用户提供预期结果以及浏览器、应用和授权限制，主代理整理有限任务说明、持续转达纠正，并核验同一个操作代理返回的观察。操作任务直接读取和操作界面，返回最终状态、已完成动作、证据及未解决阻塞。该流程保持单一界面操作者，并由主代理统一与用户沟通；需要宿主支持已配置的操作模型和界面工具，本技能本身不安装这些能力。
 source: community

@@ -1,6 +1,6 @@
 ---
 name: gemini-computer-use
-description: ChatGPT/Codex 桌面端专用。For authorized browser or native-app UI work, use one user-visible projectless Codex Thread created with `mcp__codex_app__create_thread` using `gemini-3.8-flash-high`, then collect its result within two attempts. codex-with-chatgpt browser phases follow this Skill.
+description: ChatGPT/Codex Desktop UI delegation for authorized browser or native-app operations that must run in one user-visible Gemini operator task. Use for codex-with-chatgpt browser phases.
 ---
 
 # Gemini Computer Use delegation
@@ -17,7 +17,7 @@ The main task never operates the UI directly and never delegates this phase thro
 
 The main task owns planning, user communication, non-UI work and final business review. One Gemini task owns the complete UI phase, including recovery, waits and verification. Reuse it for the same goal and surface; an existing Gemini operator executes directly.
 
-With the authorization above and a supported live schema, call `mcp__codex_app__create_thread` with `model: "gemini-3.8-flash-high"`, `thinking: "high"`, `target: {type: "projectless"}`, a concrete title and the complete brief below. Record the ready threadId, hostId, surface IDs and attempt N/2, and emit the host's created-thread directive.
+With the authorization above and a supported live schema, call `mcp__codex_app__create_thread` with `model: "google-antigravity/gemini-3.8-flash"`, `thinking: "high"`, `target: {type: "projectless"}`, a concrete title and the complete brief below. Record the ready threadId, hostId, surface IDs and attempt N/2, and emit the host's created-thread directive.
 
 ## 2. Give the complete UI goal
 
