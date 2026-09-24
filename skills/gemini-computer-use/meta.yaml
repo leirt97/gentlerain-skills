@@ -1,11 +1,11 @@
 display-name-zh: Gemini 界面操作委派
-version: 0.4.0
+version: 0.4.1
 tag-en: Platform Tools
 tag-cn: 平台工具
-summary-en: Delegate authorized UI operations to one user-visible Gemini operator task, preferring ego-browser and Ego Lite for external browsing.
-summary-cn: 将已授权的界面操作交给一个用户可见的 Gemini 操作任务；外部浏览器优先使用 ego-browser 和 Ego Lite，由主任务持续沟通并验收。
+summary-en: Delegate authorized UI operations to one visible Gemini task without repeated confirmation, reusing existing authorization and respecting the host's task-creation requirements.
+summary-cn: 将已授权的界面操作交给独立 Gemini 任务，沿用已有授权，无需二次确认；按平台条件创建或复用任务，由主任务验收。
 complete-tags-en: [Platform Tools]
 complete-tags-cn: [平台工具]
-desc-en: This personal skill coordinates authorized browser and native-application work through one user-visible Gemini operator task. The user supplies the desired outcome and any browser, app, or authorization constraints. The main agent prepares a bounded brief, forwards corrections, and evaluates observations returned by the same operator. The operator performs UI inspection and interaction directly and returns the final state, completed actions, evidence, and unresolved blockers. The workflow preserves a single UI owner while keeping user communication with the main agent. It requires host support for the configured operator model and UI tools; it does not provide or install those capabilities.
-desc-cn: 这项个人技能用于将已授权的浏览器和原生应用界面操作交给一个用户可见的 Gemini 操作任务。用户提供预期结果以及浏览器、应用和授权限制，主代理整理有限任务说明、持续转达纠正，并核验同一个操作代理返回的观察。操作任务直接读取和操作界面，返回最终状态、已完成动作、证据及未解决阻塞。该流程保持单一界面操作者，并由主代理统一与用户沟通；需要宿主支持已配置的操作模型和界面工具，本技能本身不安装这些能力。
+desc-en: This skill coordinates authorized browser and native-application work in ChatGPT/Codex Desktop through one independent Gemini task. It carries forward visible user authorization without adding a second confirmation step. Creating a task still requires the user's explicit request under the host contract; unmet requirements are reported as a block. The same operator owns UI actions, recovery and evidence, with one initial attempt and at most one retry. The main task owns communication and business acceptance.
+desc-cn: 这项技能在 ChatGPT/Codex Desktop 中，将已授权的浏览器和原生应用操作交给独立 Gemini 任务。沿用可见的用户授权，不增加二次确认；创建任务仍以用户明确的新建任务请求为依据，不满足平台条件时报告阻塞。同一操作任务负责 UI 执行、恢复和证据，累计一次初始尝试和至多一次重试，主任务负责沟通与业务验收。
 source: community

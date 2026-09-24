@@ -1,8 +1,8 @@
-# Collect one operator result
+# 收集一个操作任务的结果
 
-Use after the operator has a ready `threadId`.
+操作任务取得可用的 `threadId` 后使用本流程。
 
-In `functions.exec`, load the reviewed helper locally and call it with the current tool handles. Keep the source inside the execution cell; do not print it or the intermediate snapshots into model context:
+在 `functions.exec` 中读取本地辅助脚本，传入当前工具句柄。脚本源码和中间快照保留在执行单元内，只将收集结果返回模型：
 
 ```javascript
 const source = await tools.exec_command({
@@ -20,10 +20,10 @@ const result = await collect({
 text(result);
 ```
 
-The helper returns a terminal report, tool/contract block or required attention. Completion requires a DONE/BLOCKED/NEED_USER report.
+辅助脚本返回终态报告、工具或契约阻塞，以及需要处理的事项。收集结束须取得 `DONE`、`BLOCKED` 或 `NEED_USER` 报告；只有主文档的全部完成标准满足，才算业务完成。
 
-If the execution cell yields, resume its `cell_id` with `functions.wait`, at most 60 seconds per wait. Keep one collector per operator and do independent work while it runs.
+执行单元让出控制权时，使用其 `cell_id` 调用 `functions.wait` 继续，每次至多等待 60 秒。每个操作任务保持一个收集器，等待期间可推进独立工作。
 
-If the host cannot run this helper, use one bounded `wait_threads` call at a time with its cursor. On new user input, stop the old collector and handle the input before resuming dependent work.
+宿主无法运行辅助脚本时，每次调用一次有界的 `wait_threads` 并复用返回游标。收到新用户输入时，停止旧收集器，处理输入后再继续依赖它的工作。
 
-Record the returned wait/read/send counts with the final result. Add calls outside this collector when measuring the whole task.
+最终结果记录返回的 wait/read/send 调用次数；统计整个任务时，补计收集器以外的调用。

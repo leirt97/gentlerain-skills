@@ -1,46 +1,57 @@
 ---
 name: gemini-computer-use
-description: ChatGPT/Codex Desktop UI delegation for authorized browser or native-app operations that must run in one user-visible Gemini operator task. Use for codex-with-chatgpt browser phases.
+description: 在 ChatGPT/Codex Desktop 中，将已授权的浏览器或原生应用操作交给独立 Gemini 任务；也用于 codex-with-chatgpt 的浏览器阶段。
 ---
 
-# Gemini Computer Use delegation
+# Gemini 界面操作委派
 
-On other hosts, report this Skill unavailable and end the UI operation.
+在 ChatGPT/Codex Desktop 中，由一个用户可见的独立 Gemini 任务完成整个 UI 阶段。主任务负责规划、沟通、非 UI 工作和业务验收；Gemini 任务负责界面操作、等待、恢复和验证。其他宿主返回 `BLOCKED`，说明技能不可用。
 
-## Hard routing boundary
+## 授权与分工
 
-This Skill's UI operator is a user-visible, independent Codex Thread created through `mcp__codex_app__create_thread`. When the user has authorized the current UI operation, that authorization also covers creating this required projectless Thread; no second approval is needed when the live schema and higher-priority platform rules permit it. Without authorization for the UI operation, do not create the Thread.
+本技能不增加审批步骤。沿用当前请求和可见上下文中的用户授权，直接推进已授权的操作、已明确要求的任务创建，以及本技能规定的恢复与重试，无需二次确认。只有新的范围变更、缺失的必要输入或实际需要用户参与的步骤，才向用户提出具体事项。
 
-The main task never operates the UI directly and never delegates this phase through `collaboration.spawn_agent`, an ordinary subagent or another UI operator. If `mcp__codex_app__create_thread` is unavailable or explicitly fails, report the Skill unavailable and end the UI operation; do not silently switch to another UI operator.
+创建独立任务使用 `mcp__codex_app__create_thread`，以用户明确的新建任务请求为依据。普通 UI 操作授权或自动加载本技能，不自动补足平台要求的建任务条件。若现有授权、工具或宿主不满足调用条件，返回 `BLOCKED`，说明限制来源和已有进度，结束 UI 阶段；不把同一事项改写成另一轮授权询问。
 
-## 1. Assign one operator
+UI 阶段由独立 Gemini 任务执行。主任务不直接接管 UI，也不使用 `collaboration.spawn_agent`、普通子代理或其他操作者替代这条路线。
 
-The main task owns planning, user communication, non-UI work and final business review. One Gemini task owns the complete UI phase, including recovery, waits and verification. Reuse it for the same goal and surface; an existing Gemini operator executes directly.
+## 1. 确定操作任务
 
-With the authorization above and a supported live schema, call `mcp__codex_app__create_thread` with `model: "google-antigravity/gemini-3.8-flash"`, `thinking: "high"`, `target: {type: "projectless"}`, a concrete title and the complete brief below. Record the ready threadId, hostId, surface IDs and attempt N/2, and emit the host's created-thread directive.
+同一目标、同一界面复用已有 Gemini 任务。若当前已经位于该 Gemini 操作任务中，直接执行 UI 工作。
 
-## 2. Give the complete UI goal
+需要新建且满足上述调用条件时，按实时工具契约传入：
 
-Use six fields: **goal; starting location; required actions; forbidden actions; completion criteria; Gemini attempt N/2**. Include necessary paths, authorization and checkpoint IDs. The operator establishes missing UI state using live tool documentation.
+- `model: "google-antigravity/gemini-3.8-flash"`
+- `thinking: "high"`
+- `target: {type: "projectless"}`
+- 能说明目标的标题，以及下一节的完整任务说明。
 
-Honor the user's selected browser. Otherwise, read `ego-browser` and use its documented `ego-browser nodejs` workflow for external browsing. Include that route in the brief and reuse its task-space ID. Follow the selected tool's ownership, handoff and cleanup rules; open/show requests leave the page visible. Resolve unavailable surfaces through documented troubleshooting and report remaining blocks before changing browsers.
+记录可用的 `threadId`、`hostId`、界面标识和尝试次数 `N/2`，按宿主要求输出新建任务指令。创建接口不可用或明确失败时，保留错误并返回 `BLOCKED`。
 
-For the ego-browser route, scope `exec_command` to reading the required browser instructions and running `ego-browser nodejs`; keep repository inspection and unrelated system commands outside the operator's allowed command scope. The brief must leave its selected UI route executable.
+## 2. 交付完整 UI 目标
 
-## 3. Collect and review
+任务说明包含六项：**目标、起始位置、必需动作、禁止动作、完成标准、Gemini 尝试 N/2**。一并提供必要路径、已有授权、界面标识和恢复检查点；操作任务根据实时工具文档补齐未知界面状态。
 
-After dispatch, do independent work or use the [result collector](references/collecting-results.md). Intervene for a concrete block, required user input, explicit correction or authorized retry; consolidate needed answers into one message.
+使用用户指定的浏览器；未指定时读取 `ego-browser`，按其 `ego-browser nodejs` 流程操作外部网页，并复用任务空间 ID。将选定路线写入说明，遵守其控制权、交接和清理约定。打开或展示页面的请求完成后保持页面可见。界面不可用时先按文档排查，仍受阻则报告原因，再决定是否更换浏览器。
 
-Progress means a new surface state, completed UI action or requested evidence. If two consecutive task snapshots show only repeated documentation or file discovery, send one corrective follow-up naming the next UI action or required terminal status. If the next snapshot still has no progress, end that attempt as a terminal execution-chain failure. A corrective follow-up stays within the current attempt.
+采用 ego-browser 时，操作任务的 `exec_command` 仅用于读取必需的浏览器说明和运行 `ego-browser nodejs`；仓库检查及无关系统命令由主任务处理。命令范围必须允许选定的 UI 路线正常执行。
 
-Return **DONE**, **BLOCKED** or **NEED_USER**, with `状态`, `已完成`, `关键结果`, `副作用`, `验证`, `证据`. Include the actual model, final surface and target state/version, plus page/screenshot/object IDs or evidence paths. Aim for 1,000–2,000 characters while preserving necessary plans, business data and evidence; put long material in referenced files. DONE requires UI observations supporting every requested outcome. Retain a recovery checkpoint. The main task reviews the business result once from this evidence.
+## 3. 收集结果并验收
 
-## 4. End within two Gemini attempts
+派发后推进独立工作，或按[结果收集说明](references/collecting-results.md)等待。出现具体阻塞、必要用户输入、明确纠正或符合条件的重试时再介入，将所需补充合并为一次消息。
 
-Track one initial attempt plus at most one retry per operation goal, across follow-ups, replacement tasks and context recovery. Only terminal execution-chain failure permits a retry: unusable history, an unrecoverable required tool error or loss of surface control. Recoverable action errors, loading/generation, wait timeouts and business validation remain in the current attempt; login/CAPTCHA/consent use the user-input path.
+进展须体现为新的界面状态、已完成动作或所需证据。连续两次快照只有重复读文档或查文件时，发送一次纠正，明确下一项 UI 动作或应返回的终态；下一次仍无进展，则将本次尝试记为执行链失败。纠正不增加尝试次数。
 
-Treat `429 Too Many Requests`, `model_cooldown` and `RESOURCE_EXHAUSTED` before UI control as provider recovery, not a new Gemini attempt. Allow one cooldown recovery cycle inside the current attempt: honor the live `Retry-After` or confirm bridge recovery, then resume the same task. If the resumed turn ends with the same provider error, the attempt has failed.
+操作任务返回 `DONE`、`BLOCKED` 或 `NEED_USER`，包含：**状态、已完成、关键结果、副作用、验证、证据**。写明实际模型、最终界面、目标状态或版本，以及页面、截图、对象 ID 或证据路径，并保留恢复检查点。正文以 1,000–2,000 字符为宜，必要业务数据和证据完整保留，长材料放入引用文件。
 
-Before retrying, preserve the failure and available checkpoint, and confirm the prior controller has stopped with no in-flight action. A `systemError` status alone does not make its task unusable: resume it after recovery unless read/send evidence shows inaccessible or corrupt history. An authorized replacement consumes the same budget. Supply surface IDs, completed/pending actions, last state, failure evidence, side effects to preserve and attempt N/2. Inspect current state and ambiguous results before continuing pending actions.
+每项请求结果都有 UI 观察支持，才可返回 `DONE`；主任务据此完成一次业务验收。`NEED_USER` 用于缺失的必要输入或登录、验证码、页面同意等实际参与步骤，说明具体需要完成什么。
 
-After the second failed attempt, or earlier when another attempt is not authorized, end the UI operation and report the failure and checkpoint.
+## 4. 在两次尝试内恢复或结束
+
+同一操作目标累计一次初始尝试和至多一次重试，跨后续消息、替换任务和上下文恢复连续计数。只有执行链失败可使用重试：历史不可用、必需工具不可恢复地报错、界面控制丢失，或上一节规定的无进展终止。可恢复的动作错误、加载或生成等待、等待超时和业务校验仍属于当前尝试。
+
+取得 UI 控制前发生 `429 Too Many Requests`、`model_cooldown` 或 `RESOURCE_EXHAUSTED` 时，在当前尝试内执行一次服务恢复：遵守实时 `Retry-After` 或确认桥接已恢复，再继续原任务。恢复后仍以相同服务错误结束，才记为本次失败。
+
+重试前保存失败证据和检查点，核实前一个操作者已停止且没有进行中的动作。单独的 `systemError` 状态不足以判定任务不可用；除非读写工具证明历史不可访问或损坏，否则恢复原任务。确需替换时，仍使用同一尝试预算并满足第一节的建任务条件。
+
+交接界面标识、已完成和待完成动作、最后状态、失败证据、须保留的副作用及 `N/2`。先检查当前状态和结果不明的动作，再继续待办。第二次尝试失败或已无可执行路线时，返回 `BLOCKED`，报告失败和恢复检查点，结束 UI 阶段。
