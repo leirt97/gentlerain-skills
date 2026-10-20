@@ -1,0 +1,4 @@
+interface:
+  display_name: Agent Bridge
+  short_description: 把任务委派给本机 ZCode 或 DeepSeek Harness，完成后唤醒原会话续接
+  default_prompt: 使用 $agent-bridge-mcp 把任务以后台任务交给 ZCode 或 dsh，完成后读取回复和 session_id，在当前会话继续。
