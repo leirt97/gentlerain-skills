@@ -9,7 +9,7 @@ description: 把任务委派给本机 ZCode 或 DeepSeek Harness（dsh）并在�
 
 ## 执行
 
-1. 确定目标（`zcode` 或 `dsh`）、绝对路径 `cwd` 和 `access`：默认 `read-only`；对方要改文件用 `workspace-write`；要跑命令或操作界面（L2）用 `operate`，按下方 L2 约定写 prompt。写出自足的 prompt：目标、相关文件路径、约束和期望的回复形式。
+1. 确定目标（`zcode` 或 `dsh`）、绝对路径 `cwd` 和 `access`：默认 `read-only`；对方要改文件用 `workspace-write`；L2 操作桌面应用用 `operate`，网页 L2 用 `web`，按下方 L2 约定写 prompt。写出自足的 prompt：目标、相关文件路径、约束和期望的回复形式。
 2. 以宿主的**后台任务**启动，进程退出即唤醒本会话（Claude 中为 Bash `run_in_background`）。可并行派发，同时在途上限默认 3：
 
    ```bash
@@ -24,11 +24,10 @@ description: 把任务委派给本机 ZCode 或 DeepSeek Harness（dsh）并在�
 
 ## L2 约定
 
-`operate` 任务独占桌面锁，后派的任务排队等待；界面任务一律用 `operate`，dsh 在 `workspace-write` 下同样能调界面工具，但不进锁。prompt 写明：
+`operate` 任务独占桌面锁，后派的任务排队等待；桌面应用任务一律用 `operate`，dsh 在 `workspace-write` 下同样能调界面工具，但不进锁。`web` 任务各自建 ego lite 任务空间，可并行派发。prompt 写明：
 
-- 操作通道：`codex-computer-use` MCP 工具，配套 skill `codex-cua-jev`；先取应用状态再操作。
-- 本机系统语言为繁体中文：界面文字是繁体，按英文名或 bundle id（如 `com.apple.calculator`）定位应用。
-- 快捷键可能送不达应用，改用菜单或元素点击；应用可能带上次的残留状态，先清空或确认初始状态。
+- 桌面应用：通道为 `codex-computer-use` MCP 工具，配套 skill `codex-cua-jev`；先取应用状态再操作。本机系统语言为繁体中文，界面文字是繁体，按英文名或 bundle id（如 `com.apple.calculator`）定位应用。快捷键可能送不达应用，改用菜单或元素点击；应用可能带上次的残留状态，先清空或确认初始状态。
+- 网页：只用 ego lite。先执行 `ego-browser skill` 读当前版本指南并照做；在自己新建的任务空间内操作，结束时 `task.finish({ keep: [] })`；不碰用户已有标签页，不清除 cookie、缓存或存储。
 - 无人值守：不提交、不推送、不做不可逆或外部写入；遇到登录、扫码、付款等需本人的步骤，停下报告。
 - 回复给出每一步的操作、观察到的界面证据（文字、截图路径或无障碍树片段）和 `passed` / `failed` / `blocked` 结论，并关闭本次打开的应用。
 

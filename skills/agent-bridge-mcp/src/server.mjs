@@ -83,7 +83,7 @@ for (const name of targets) {
       .enum(ACCESS_LEVELS)
       .default('read-only')
       .describe(
-        'read-only (default): read only. workspace-write: may edit files in cwd. operate: L2 work, may run commands and drive the GUI; such calls run one at a time.',
+        'read-only (default): read only. workspace-write: may edit files in cwd. operate: L2 desktop work, may run commands and drive the GUI; runs one at a time. web: L2 web work via ego-browser, same permissions, runs in parallel.',
       ),
   };
   if (adapter.supportsModel) inputSchema.model = z.string().optional().describe('Model alias or id for this agent.');

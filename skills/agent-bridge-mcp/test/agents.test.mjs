@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { AGENTS } from '../src/agents.mjs';
+import { AGENTS, GUI_ACCESS_LEVELS } from '../src/agents.mjs';
 
 // Fixtures mirror real CLI output captured on 2026-10-20 (ZCode CLI 0.16.9, dsh 0.2.1-rc.2).
 test('zcode: parses --json output', () => {
@@ -42,10 +42,17 @@ test('access level maps to each CLI permission flag', () => {
   assert.ok(zc('read-only').join(' ').includes('--mode plan'));
   assert.ok(zc('workspace-write').join(' ').includes('--mode edit'));
   assert.ok(zc('operate').join(' ').includes('--mode guarded'));
+  assert.ok(zc('web').join(' ').includes('--mode guarded'));
   const dshMode = (access) => AGENTS.dsh.build({ ...base, access }).env.DSH_PERMISSION_MODE;
   assert.equal(dshMode('read-only'), 'read-only');
   assert.equal(dshMode('operate'), 'workspace-write'); // never danger-full-access
+  assert.equal(dshMode('web'), 'workspace-write');
   const cl = AGENTS.claude.build({ ...base, access: 'read-only', sessionId: 'abc', model: 'haiku' });
   assert.deepEqual(cl.args, ['-p', '--output-format', 'json', '--permission-mode', 'plan', '--model', 'haiku', '--resume', 'abc']);
   assert.equal(cl.stdin, 'p');
+});
+
+test('only desktop work takes the desktop lock', () => {
+  assert.equal(GUI_ACCESS_LEVELS.has('operate'), true);
+  assert.equal(GUI_ACCESS_LEVELS.has('web'), false);
 });
