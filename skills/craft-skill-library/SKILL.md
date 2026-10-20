@@ -5,7 +5,7 @@ description: 安装、更新或卸载 Skill 后同步 Craft Skill 目录；也�
 
 # Craft Skill 库同步
 
-维护 `${CRAFT_SKILL_LIBRARY_DIR:-${HOME}/D/Craft/skill-library}/target.json` 绑定的原生集合及其自动维护详情区块。下文 JSON 文件均位于该目录。使用现有 Craft API，从项目 `.env.example` 加载凭据。运行环境需 Node.js 22+、Python 3.11+ 和 PyYAML；缺失时报告阻塞。
+维护 `${CRAFT_SKILL_LIBRARY_DIR:-${HOME}/D/Craft/skill-library}/target.json` 绑定的原生集合及其自动维护详情区块。下文 JSON 文件均位于该目录。使用现有 Craft API，从 `${HOME}/D/Craft/.env.local`（已 gitignore）加载凭据。运行环境需 Node.js 22+、Python 3.11+ 和 PyYAML；缺失时报告阻塞。
 
 ## 来源与范围
 
