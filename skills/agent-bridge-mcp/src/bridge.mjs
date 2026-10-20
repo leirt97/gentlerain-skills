@@ -12,8 +12,8 @@
 import { existsSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
-import { AGENTS } from './agents.mjs';
-import { InflightLedger, childEnv, runProcess } from './run.mjs';
+import { AGENTS, GUI_ACCESS_LEVELS } from './agents.mjs';
+import { DesktopLock, InflightLedger, childEnv, runProcess } from './run.mjs';
 
 const OUTPUT_TAIL_CHARS = 2000;
 
@@ -28,14 +28,11 @@ function intEnv(name, fallback) {
 export const timeoutMs = intEnv('AGENT_BRIDGE_TIMEOUT_MS', 900_000);
 const maxDepth = intEnv('AGENT_BRIDGE_MAX_DEPTH', 2);
 const depth = intEnv('AGENT_BRIDGE_DEPTH', 0);
+const stateDir = () => process.env.AGENT_BRIDGE_STATE_DIR ?? join(homedir(), '.agent-bridge');
 let ledger; // created lazily so importing this module has no side effects
 
 function getLedger() {
-  ledger ??= new InflightLedger(
-    join(process.env.AGENT_BRIDGE_STATE_DIR ?? join(homedir(), '.agent-bridge'), 'inflight'),
-    intEnv('AGENT_BRIDGE_MAX_INFLIGHT', 3),
-    timeoutMs + 60_000,
-  );
+  ledger ??= new InflightLedger(join(stateDir(), 'inflight'), intEnv('AGENT_BRIDGE_MAX_INFLIGHT', 3), timeoutMs + 60_000);
   return ledger;
 }
 
@@ -58,16 +55,30 @@ function resolveCwd(cwd) {
 /**
  * Sends `prompt` to `target` and waits for its final reply.
  * @returns {Promise<{ reply: string, sessionId: string | null, durationMs: number }>}
+ * GUI access levels first wait for the desktop lock (up to the call timeout);
+ * `onDesktopWait` fires once if they have to queue.
  * @throws Error with the CLI's output tail when the call cannot complete.
  */
-export async function askAgent({ caller, target, prompt, sessionId, cwd, access = 'read-only', model, signal }) {
+export async function askAgent({ caller, target, prompt, sessionId, cwd, access = 'read-only', model, signal, onDesktopWait }) {
   const adapter = AGENTS[target];
   if (!adapter) throw new Error(`unknown agent "${target}"; expected one of ${Object.keys(AGENTS).join(', ')}`);
   if (target === caller) throw new Error(`refusing to forward ${caller} to itself`);
   if (depth >= maxDepth) {
     throw new Error(`nesting depth ${depth} reached AGENT_BRIDGE_MAX_DEPTH=${maxDepth}; answer directly instead.`);
   }
-  const release = getLedger().acquire(caller, target);
+  const releaseDesktop = GUI_ACCESS_LEVELS.has(access)
+    ? await new DesktopLock(join(stateDir(), 'desktop.lock'), timeoutMs + 60_000).acquire(
+        { from: caller, to: target },
+        { timeoutMs, signal, onWait: onDesktopWait },
+      )
+    : () => {};
+  let release;
+  try {
+    release = getLedger().acquire(caller, target);
+  } catch (error) {
+    releaseDesktop();
+    throw error;
+  }
   const started = Date.now();
   try {
     const invocation = adapter.build({
@@ -92,5 +103,6 @@ export async function askAgent({ caller, target, prompt, sessionId, cwd, access 
     return { ...adapter.parse(result.stdout), durationMs: Date.now() - started };
   } finally {
     release();
+    releaseDesktop();
   }
 }

@@ -41,7 +41,10 @@ test('access level maps to each CLI permission flag', () => {
   const zc = (access) => AGENTS.zcode.build({ ...base, access }).args;
   assert.ok(zc('read-only').join(' ').includes('--mode plan'));
   assert.ok(zc('workspace-write').join(' ').includes('--mode edit'));
-  assert.equal(AGENTS.dsh.build({ ...base, access: 'read-only' }).env.DSH_PERMISSION_MODE, 'read-only');
+  assert.ok(zc('operate').join(' ').includes('--mode guarded'));
+  const dshMode = (access) => AGENTS.dsh.build({ ...base, access }).env.DSH_PERMISSION_MODE;
+  assert.equal(dshMode('read-only'), 'read-only');
+  assert.equal(dshMode('operate'), 'workspace-write'); // never danger-full-access
   const cl = AGENTS.claude.build({ ...base, access: 'read-only', sessionId: 'abc', model: 'haiku' });
   assert.deepEqual(cl.args, ['-p', '--output-format', 'json', '--permission-mode', 'plan', '--model', 'haiku', '--resume', 'abc']);
   assert.equal(cl.stdin, 'p');

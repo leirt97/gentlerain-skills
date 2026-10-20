@@ -7,7 +7,7 @@
 //   node src/cli.mjs <zcode|dsh|claude> [options] [--] <prompt | ->
 //     --session <id>   continue an earlier conversation
 //     --cwd <dir>      absolute working directory (default: current directory)
-//     --access <lvl>   read-only (default) | workspace-write
+//     --access <lvl>   read-only (default) | workspace-write | operate (L2: GUI + commands, one at a time)
 //     --model <name>   model, for agents that accept one (claude)
 //     --from <agent>   who is asking (default: claude)
 //
@@ -40,7 +40,7 @@ async function main() {
   });
   const [target, ...rest] = positionals;
   if (!target || rest.length === 0) {
-    throw new Error('usage: cli.mjs <zcode|dsh|claude> [--session id] [--cwd dir] [--access level] [--model m] <prompt | ->');
+    throw new Error('usage: cli.mjs <zcode|dsh|claude> [--session id] [--cwd dir] [--access read-only|workspace-write|operate] [--model m] <prompt | ->');
   }
   if (!ACCESS_LEVELS.includes(values.access)) {
     throw new Error(`--access must be one of ${ACCESS_LEVELS.join(', ')}`);
@@ -62,6 +62,7 @@ async function main() {
     access: values.access,
     model: values.model,
     signal: controller.signal,
+    onDesktopWait: () => process.stderr.write('agent-bridge: another job holds the desktop lock; waiting\n'),
   });
   process.stdout.write(
     `${reply}\n\n---\nagent: ${target}\nsession_id: ${sessionId ?? '(none)'}\nduration: ${(durationMs / 1000).toFixed(1)}s\n`,

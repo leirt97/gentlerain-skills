@@ -82,7 +82,9 @@ for (const name of targets) {
     access: z
       .enum(ACCESS_LEVELS)
       .default('read-only')
-      .describe('read-only (default): the other agent may read but not change files. workspace-write: it may edit files in cwd.'),
+      .describe(
+        'read-only (default): read only. workspace-write: may edit files in cwd. operate: L2 work, may run commands and drive the GUI; such calls run one at a time.',
+      ),
   };
   if (adapter.supportsModel) inputSchema.model = z.string().optional().describe('Model alias or id for this agent.');
 

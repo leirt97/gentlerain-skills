@@ -142,3 +142,58 @@ export class InflightLedger {
     return () => rmSync(path, { force: true });
   }
 }
+
+const LOCK_POLL_MS = 2000;
+
+/**
+ * Machine-wide mutex for jobs that drive the shared desktop: two agents
+ * clicking at once would steal each other's focus. Waiters poll until the
+ * holder releases, dies, or goes stale.
+ */
+export class DesktopLock {
+  constructor(path, staleAfterMs) {
+    this.path = path;
+    this.staleAfterMs = staleAfterMs;
+  }
+
+  #tryTake(owner) {
+    try {
+      writeFileSync(this.path, JSON.stringify({ pid: process.pid, ...owner, startedAt: Date.now() }), { flag: 'wx' });
+      return true;
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+    }
+    let holder;
+    try {
+      holder = JSON.parse(readFileSync(this.path, 'utf8'));
+    } catch {
+      return false; // being written or released right now; retry next poll
+    }
+    if (!isAlive(holder.pid) || Date.now() - holder.startedAt > this.staleAfterMs) {
+      rmSync(this.path, { force: true });
+      return this.#tryTake(owner);
+    }
+    return false;
+  }
+
+  /** Resolves with a release function once the lock is held. */
+  async acquire(owner, { timeoutMs, signal, onWait }) {
+    const deadline = Date.now() + timeoutMs;
+    let notified = false;
+    while (!this.#tryTake(owner)) {
+      if (signal?.aborted) throw new Error('cancelled while waiting for the desktop lock');
+      if (Date.now() > deadline) throw new Error(`desktop lock still held after ${timeoutMs} ms (${this.path})`);
+      if (!notified) {
+        onWait?.();
+        notified = true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_MS));
+    }
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      rmSync(this.path, { force: true });
+    };
+  }
+}

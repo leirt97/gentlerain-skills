@@ -21,7 +21,7 @@ echo '很长的提示词' | node src/cli.mjs zcode --cwd /abs/project -
 |---|---|---|
 | `--cwd` | 当前目录 | 对方的工作目录，须为绝对路径 |
 | `--session` | 新会话 | 传入上次输出的 `session_id` 以续接对话 |
-| `--access` | `read-only` | `workspace-write` 允许对方修改 `cwd` 内文件 |
+| `--access` | `read-only` | `workspace-write` 允许修改 `cwd` 内文件；`operate` 用于 L2：跑命令、操作界面，同一时间只运行一个 |
 | `--model` | — | 仅 claude 适配器使用；ZCode/dsh 用各自配置的默认模型 |
 
 输出格式：回复正文，然后是 `---` 分隔的 `agent`、`session_id`、`duration`。失败时退出码为 1，错误和对方 CLI 的输出尾部写到 stderr。收到 SIGTERM/SIGINT（例如后台任务被停止）时会连带终止对方进程组。
@@ -32,8 +32,33 @@ echo '很长的提示词' | node src/cli.mjs zcode --cwd /abs/project -
 |---|---|---|---|
 | `read-only` | `--mode plan` | `DSH_PERMISSION_MODE=read-only` | `--permission-mode plan` |
 | `workspace-write` | `--mode edit` | `DSH_PERMISSION_MODE=workspace-write` | `--permission-mode acceptEdits` |
+| `operate` | `--mode guarded` | `DSH_PERMISSION_MODE=workspace-write` | `--permission-mode acceptEdits`（未实测） |
 
-ZCode `-p` 默认是 `yolo`，dsh 默认是 `workspace-write`；本工具总是显式传入上表的值。
+ZCode `-p` 默认是 `yolo`，dsh 默认是 `workspace-write`；本工具总是显式传入上表的值，不使用 `yolo` 或 `danger-full-access`。
+
+2026-10-20 实测边界：
+
+| 操作 | ZCode `edit` | ZCode `guarded` | dsh `workspace-write` |
+|---|---|---|---|
+| 在 `cwd` 写文件、执行 `node -v` | 允许 | 允许 | 允许 |
+| 写 `cwd` 之外的普通路径（`~/…`） | 拒绝：需审批而 `-p` 无审批方 | 未测；ZCode 只拦它判定为危险的命令 | 沙箱拒绝 |
+| 写系统临时目录 `$TMPDIR` | 允许 | — | 允许（沙箱白名单） |
+| 调 MCP 工具 `codex-computer-use`（计算器 2+3） | 拒绝：`mode.build.sideEffect` | 通过 | 通过 |
+
+要点：
+
+- dsh 的沙箱只约束 bash 的文件访问，不限网络，也不拦 MCP 工具，所以 dsh 在 `workspace-write` 下同样能操作界面；界面任务仍应使用 `operate`，以进入桌面锁。
+- ZCode `-p` 不读取 `~/.zcode/cli/config.json` 的 `permission.allowedTools`（日志中的命中规则仍是 `mode.build.sideEffect`），白名单方案不可用。
+- `operate` 任务先获取 `~/.agent-bridge/desktop.lock`，持有者退出、进程消失或超过“调用超时 + 60 秒”即释放；排队时 stderr 提示 `waiting`。
+
+## 界面操作（L2）所需配置
+
+| | MCP `codex-computer-use` | skill `codex-cua-jev` | 全局规则 |
+|---|---|---|---|
+| ZCode CLI | `~/.zcode/cli/config.json` 的 `mcp.servers`（桌面端用 `~/.zcode/mcp.json`，CLI 不读） | `~/.zcode/skills/codex-cua-jev` | `~/.zcode/AGENTS.md` → `~/.agents/AGENTS.md` |
+| dsh | `~/.dsh/profiles/{headless,desktop}/cordis.patch.yml` 的 `mcp-codex-computer-use` | `~/.dsh/skills/codex-cua-jev` | 自动读取 `~/.agents/AGENTS.md` |
+
+实测注意：本机系统语言为繁体中文，按英文名或 bundle id 定位应用；ZCode 侧 `cmd+q` 等快捷键未送达应用，需改用菜单；应用会保留上次的界面状态。
 
 ## 模型
 

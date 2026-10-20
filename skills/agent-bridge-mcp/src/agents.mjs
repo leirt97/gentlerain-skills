@@ -7,7 +7,16 @@ import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-export const ACCESS_LEVELS = ['read-only', 'workspace-write'];
+// Access levels, measured on 2026-10-20 (see README "权限映射"):
+//   read-only        inspect only
+//   workspace-write  edit files in cwd; no GUI (ZCode denies MCP tools here)
+//   operate          L2 work: run commands and drive the GUI through MCP tools.
+//                    Each CLI keeps its own guard: ZCode still denies commands it
+//                    rates dangerous, dsh still confines file writes to cwd.
+export const ACCESS_LEVELS = ['read-only', 'workspace-write', 'operate'];
+
+// Levels that may drive the shared desktop; bridge.mjs runs them one at a time.
+export const GUI_ACCESS_LEVELS = new Set(['operate']);
 
 const ZCODE_RESOURCES = '/Applications/ZCode.app/Contents/Resources';
 
@@ -60,8 +69,10 @@ const zcode = {
   },
   build({ prompt, sessionId, cwd, access }) {
     const { cli, builtinConfig } = this.resolve();
-    // ZCode modes: plan = read-only planning, edit = may edit files.
-    const mode = access === 'workspace-write' ? 'edit' : 'plan';
+    // ZCode modes (zcode.cjs): plan = inspect only; edit = file edits, other side
+    // effects need an approver (none in -p, so they are denied); guarded = allow
+    // tools except commands ZCode rates dangerous.
+    const mode = { 'read-only': 'plan', 'workspace-write': 'edit', operate: 'guarded' }[access];
     const args = [cli, '-p', prompt, '--json', '--mode', mode, '--cwd', cwd];
     if (sessionId) args.push('--resume', sessionId);
     const env = builtinConfig ? { ZCODE_BUILTIN_PROVIDER_CONFIG_FILE: builtinConfig } : {};
@@ -98,7 +109,9 @@ const dsh = {
     const args = [cli, '--profile', 'headless', '--json'];
     if (sessionId) args.push('--session-id', sessionId);
     args.push('-'); // read the task from stdin so prompts starting with "-" stay literal
-    return { command: process.execPath, args, env: { DSH_PERMISSION_MODE: access }, cwd, stdin: prompt };
+    // dsh sandboxes only bash file access; MCP tools run under workspace-write.
+    const permissionMode = { 'read-only': 'read-only', 'workspace-write': 'workspace-write', operate: 'workspace-write' }[access];
+    return { command: process.execPath, args, env: { DSH_PERMISSION_MODE: permissionMode }, cwd, stdin: prompt };
   },
   parse(stdout) {
     let sessionId = null;
@@ -138,7 +151,8 @@ const claude = {
     );
   },
   build({ prompt, sessionId, cwd, access, model }) {
-    const permissionMode = access === 'workspace-write' ? 'acceptEdits' : 'plan';
+    // Not measured for operate: in -p mode tools outside acceptEdits are denied.
+    const permissionMode = { 'read-only': 'plan', 'workspace-write': 'acceptEdits', operate: 'acceptEdits' }[access];
     const args = ['-p', '--output-format', 'json', '--permission-mode', permissionMode];
     if (model) args.push('--model', model);
     if (sessionId) args.push('--resume', sessionId);
