@@ -4,10 +4,16 @@ itsaplan 是本机 Docker 自托管实例，完整契约见 `GET <apiUrl>/docs/j
 
 ## 连接
 
-- `~/.itsaplan/bootstrap.json`（权限 600）提供 `apiUrl`、`appUrl`、`apiKey` 和项目 ref（顶层 `projectRef` 及 `products.*.projectRef`）。key 只在进程内使用，不写入命令行回显、日志、评论或文档。
+- `~/.itsaplan/bootstrap.json`（权限 600）提供 `apiUrl`、`appUrl`、`apiKey`；其中的项目和 ID 是迁移时的快照，项目以 `GET /projects`（返回各项目 `ref`）为准。key 只在进程内使用，不写入命令行回显、日志、评论或文档。
 - 请求头：`x-api-key: <apiKey>`、`Origin: <appUrl>`。
-- 服务未响应时先 `colima start`，再在 `/Users/cutesunday/D/Projects/itsaplan` 执行 `docker compose up -d`。`docker compose down -v` 会删除数据卷。
-- API key 有速率限制，超限时返回 500（日志中为 429 `RATE_LIMITED`）；批量写入要退避重试。
+- key 默认 90 天有效，当前 key 到 2027-01-20 过期；过期后返回 401，需在 Web 设置中新建 key 并写回 `bootstrap.json`。
+- 速率限制按 key 计：两次请求间隔不超过 1 秒时计数累加，累计 100 次后拒绝，直到空闲超过 1 秒才清零。拒绝时 API 返回 500（日志为 429 `RATE_LIMITED`）。批量操作每约 90 个请求停 1.5 秒，遇 500 退避后重试；重试前确认写操作没有生效，避免重复发评论。
+
+## 运维
+
+- 服务未响应时先 `colima start`，再在 `/Users/cutesunday/D/Projects/itsaplan` 执行 `docker compose up -d`；`docker compose ps` 查看状态。`docker compose down -v` 会删除数据卷。
+- Web 管理员账号 `admin@itsaplan.local`，密码在 `~/.itsaplan/admin.env`（权限 600）。
+- 数据在 Docker 卷 `postgres-data`（PostgreSQL）和 `minio-data`（附件）中；备份用 `pg_dump` 加卷快照。镜像使用 `latest` 标签，`docker compose pull` 升级后要重新核对状态列、字段和视图。
 
 ## ID 解析
 
