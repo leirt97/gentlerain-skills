@@ -1,0 +1,22 @@
+{
+  "should_trigger": [
+    "在 itsaplan 新建一个问题",
+    "把 itsaplan 待办状态改为 AI 处理中",
+    "给这个缺陷追加一轮修复记录",
+    "记一个新功能到 It's a Plan",
+    "给用户反馈的问题分配 D 编号",
+    "给大河湖新增 v0.3.2 版本",
+    "把这条待办归到 v0.3.1.1"
+  ],
+  "should_not_trigger": [
+    "修复 Vue 地图代码",
+    "同步 Craft Skill 库",
+    "在外部业务系统提交缺陷",
+    "采集 JXSTJH 缺陷",
+    "创建一个 Skill"
+  ],
+  "near_neighbor": [
+    "部署 itsaplan 新版本镜像",
+    "帮我推荐问题管理工具"
+  ]
+}
