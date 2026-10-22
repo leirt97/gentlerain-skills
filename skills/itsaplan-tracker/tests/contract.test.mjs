@@ -12,7 +12,8 @@ test('user-provided todos keep the DYYMMDDNNN contract, allocated from 原编号
     assert.match(workflow, /DYYMMDDNNN/)
     assert.match(workflow, /\^D\[0-9\]\{9\}\$/)
     assert.match(workflow, /写入自定义字段 `原编号`/)
-    assert.match(workflow, /`GET \/projects` 列出全部项目/)
+    assert.match(workflow, /scripts\/assign-number\.mjs/)
+    assert.match(workflow, /独占锁/)
     assert.match(workflow, /来源表格自带的编号.*不是稳定身份/)
     assert.match(workflow, /已用序号不回收/)
     assert.doesNotMatch(workflow, /登记合集/)
@@ -26,13 +27,19 @@ test('status chain is defined once and fix rounds are comments', () => {
 
 test('todos carry 事项类型 and 归属迭代 on creation', () => {
     assert.match(skill, /`事项类型` 区分 `功能` 与 `问题`/)
-    assert.match(skill, /一次设齐 `事项类型`、`归属迭代`/)
+    assert.match(skill, /新建时设齐 `事项类型`、`归属迭代`/)
 })
 
 test('API notes resolve IDs by name and keep the key out of output', () => {
     assert.match(apiNotes, /按名称从 `GET \/projects\/<ref>` 解析/)
     assert.match(apiNotes, /不写入命令行回显、日志、评论或文档/)
     assert.doesNotMatch(apiNotes, /"apiKey":\s*"/)
+})
+
+test('reads go through compact output instead of raw board JSON', () => {
+    assert.match(skill, /scripts\/list\.mjs/)
+    assert.match(apiNotes, /## 精简读取/)
+    assert.match(apiNotes, /filter=comments&limit=/)
 })
 
 test('no Craft dependency remains', () => {
