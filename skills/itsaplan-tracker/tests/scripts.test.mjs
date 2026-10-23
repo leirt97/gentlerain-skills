@@ -54,7 +54,16 @@ function startMock() {
         })),
       })
     }
-    if ((m = url.pathname.match(/^\/issues\/(\d+)$/))) return send({ id: Number(m[1]), fields: fieldsOf(issues.get(Number(m[1]))) })
+    if ((m = url.pathname.match(/^\/issues\/(\d+)$/)) && req.method === 'PATCH') {
+      let body = ''
+      for await (const chunk of req) body += chunk
+      issues.get(Number(m[1])).title = JSON.parse(body).title
+      return send({ ok: true })
+    }
+    if ((m = url.pathname.match(/^\/issues\/(\d+)$/))) {
+      const issue = issues.get(Number(m[1]))
+      return send({ id: issue.id, title: issue.title, fields: fieldsOf(issue) })
+    }
     if ((m = url.pathname.match(/^\/issues\/(\d+)\/fields\/(\d+)$/)) && req.method === 'PUT') {
       let body = ''
       for await (const chunk of req) body += chunk
@@ -105,5 +114,19 @@ test('list prints compact filtered rows without descriptions', async () => {
   await withMock(async ({ env }) => {
     const { stdout } = await run('node', [script('list.mjs'), '--number', 'D261022001'], { env })
     assert.equal(stdout, 'a.A\t1\tA-1\t新问题\tD261022001\t问题\t\tissue 1\n')
+  })
+})
+
+test('check-titles lists titles the browser would collapse and --fix rewrites them', async () => {
+  await withMock(async ({ issues, env }) => {
+    issues.get(3).title = ' 地图视角  不是\t全部 '
+    await assert.rejects(run('node', [script('check-titles.mjs')], { env }), (error) => {
+      assert.equal(error.stdout, 'A-3\tneeds fix\t" 地图视角  不是\\t全部 "\n')
+      return true
+    })
+    const { stdout } = await run('node', [script('check-titles.mjs'), '--project', 'a.A', '--fix'], { env })
+    assert.match(stdout, /^A-3\tfixed\t/)
+    assert.equal(issues.get(3).title, '地图视角 不是 全部')
+    await run('node', [script('check-titles.mjs')], { env })
   })
 })

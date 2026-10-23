@@ -45,3 +45,7 @@ test('reads go through compact output instead of raw board JSON', () => {
 test('no Craft dependency remains', () => {
     for (const doc of [skill, workflow, logFormat, apiNotes]) assert.doesNotMatch(doc, /Craft/)
 })
+
+test('titles are checked for whitespace after every title write', () => {
+    assert.match(skill, /新建或改过标题后运行 `node scripts\/check-titles\.mjs --project <ref>`/)
+})

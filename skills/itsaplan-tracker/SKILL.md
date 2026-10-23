@@ -12,7 +12,7 @@ itsaplan 中每条待办是一个事项，`事项类型` 区分 `功能` 与 `�
 1. 确定项目 ref、版本和事项类型；缺少必要绑定时只追问该项。连接方式、ID 解析和接口坑见 [接口要点](references/api-notes.md)。状态判定、编号和新增版本遵循 [流程与权限](references/workflow.md)；描述与修复轮次评论遵循 [记录格式](references/log-format.md)。
 2. 写前查重：`node scripts/list.mjs --number <原编号>` 或 `--q <标题片段>`，它只输出精简的一行一条，不含描述。按 [编号契约](references/workflow.md#编号契约) 为每条新待办得出编号决策。
 3. 写入：新建时设齐 `事项类型`、`归属迭代` 和状态列；外部编号直接写 `原编号`，用户来源的编号由 `node scripts/assign-number.mjs <issueId>` 分配并写入。改状态只改列；修复轮次只发评论，描述保持原始内容。
-4. 每次写入后回读：字段与状态列用 `list.mjs --number`，评论用 `feed?filter=comments&limit=1`，附件用附件列表；只在改过描述时读单条事项核对描述。保护用户同期编辑，结果不明时先回读已完成部分再继续。
+4. 每次写入后回读：新建或改过标题后运行 `node scripts/check-titles.mjs --project <ref>`，有输出时加 `--fix` 把标题空白折叠为单个空格（itsaplan 网页对首尾或连续空白的标题会卡死）；字段与状态列用 `list.mjs --number`，评论用 `feed?filter=comments&limit=1`，附件用附件列表；只在改过描述时读单条事项核对描述。保护用户同期编辑，结果不明时先回读已完成部分再继续。
 
 ## 交付
 
