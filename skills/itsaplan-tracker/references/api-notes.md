@@ -11,7 +11,7 @@ itsaplan 是本机 Docker 自托管实例，完整契约见 `GET <apiUrl>/docs/j
 
 ## 运维
 
-- 服务未响应时先 `colima start`，再在 `/Users/cutesunday/D/Projects/itsaplan` 执行 `docker compose up -d`；`docker compose ps` 查看状态。`docker compose down -v` 会删除数据卷。
+- 服务未响应时执行 `sh scripts/start.sh`：按需启动 colima，在 `/Users/cutesunday/D/Projects/itsaplan` 拉起 compose 栈，等 api 和 web 健康后打印各服务状态和地址（Web `:3001`，API `:3000`），可重复执行。`docker compose down -v` 会删除数据卷。
 - Web 管理员账号 `admin@itsaplan.local`，密码在 `~/.itsaplan/admin.env`（权限 600）。
 - 数据在 Docker 卷 `postgres-data`（PostgreSQL）和 `minio-data`（附件）中；备份用 `pg_dump` 加卷快照。镜像使用 `latest` 标签，`docker compose pull` 升级后要重新核对状态列、字段和视图。
 
