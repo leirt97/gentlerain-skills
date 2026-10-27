@@ -11,6 +11,8 @@ const run = promisify(execFile)
 const script = (name) => new URL(`../scripts/${name}`, import.meta.url).pathname
 
 // Minimal itsaplan: two projects sharing field names, issue 1 already numbered for 2026-10-22.
+// Each project answers only to its own agent key, as an agent's key reaches only its team's project.
+const KEYS = { 'a.A': 'key-a', 'b.B': 'key-b' }
 function startMock() {
   const projects = {
     'a.A': { id: 1, fieldId: 11, kindId: 12 },
@@ -34,7 +36,11 @@ function startMock() {
     const send = (body) => res.end(JSON.stringify(body))
     const url = new URL(req.url, 'http://x')
     let m
-    if (url.pathname === '/projects') return send(Object.keys(projects).map((ref) => ({ ref })))
+    const ref = url.pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? issues.get(Number(url.pathname.match(/^\/issues\/(\d+)/)?.[1]))?.ref
+    if (req.headers['x-api-key'] !== KEYS[ref]) {
+      res.statusCode = 403
+      return res.end('{}')
+    }
     if ((m = url.pathname.match(/^\/projects\/([^/]+)$/))) {
       const p = projects[m[1]]
       return send({
@@ -81,7 +87,7 @@ async function withMock(fn) {
   const { server, issues } = await startMock()
   const home = mkdtempSync(join(tmpdir(), 'itsaplan-test-'))
   const { port } = server.address()
-  writeFileSync(join(home, 'bootstrap.json'), JSON.stringify({ apiUrl: `http://127.0.0.1:${port}`, appUrl: 'http://app', apiKey: 'test' }))
+  writeFileSync(join(home, 'bootstrap.json'), JSON.stringify({ apiUrl: `http://127.0.0.1:${port}`, appUrl: 'http://app', agentKeys: KEYS }))
   try {
     await fn({ issues, home, env: { ...process.env, ITSAPLAN_HOME: home } })
   } finally {

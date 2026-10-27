@@ -22,8 +22,8 @@ for (const row of await listRows(project)) {
   if (title === row.title) continue
   let state = 'needs fix'
   if (fix) {
-    await api(`/issues/${row.id}`, { method: 'PATCH', body: { title } })
-    state = (await api(`/issues/${row.id}`)).title === title ? 'fixed' : 'readback mismatch'
+    await api(`/issues/${row.id}`, { ref: row.ref, method: 'PATCH', body: { title } })
+    state = (await api(`/issues/${row.id}`, { ref: row.ref })).title === title ? 'fixed' : 'readback mismatch'
   }
   if (state !== 'fixed') unfixed++
   console.log([row.identifier, state, JSON.stringify(row.title)].join('\t'))

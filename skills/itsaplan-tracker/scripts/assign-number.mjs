@@ -41,7 +41,10 @@ const originalNumberField = (issue) => {
 }
 
 async function assign(issueId, day) {
-  const issue = await api(`/issues/${issueId}`)
+  const rows = await listRows()
+  const ref = rows.find((row) => row.id === issueId)?.ref
+  if (!ref) throw new Error(`issue ${issueId} is in none of the projects in agentKeys`)
+  const issue = await api(`/issues/${issueId}`, { ref })
   const field = originalNumberField(issue)
   if (field.value) {
     // An issue that already has its number is returned as-is, so a retried call is safe.
@@ -50,15 +53,15 @@ async function assign(issueId, day) {
   }
 
   let max = 0
-  for (const row of await listRows()) {
+  for (const row of rows) {
     const match = NUMBER.exec(row.fields['原编号'] ?? '')
     if (match?.[1] === day) max = Math.max(max, Number(match[2]))
   }
   if (max >= 999) throw new Error(`no sequence left for ${day}`)
   const number = `D${day}${String(max + 1).padStart(3, '0')}`
 
-  await api(`/issues/${issueId}/fields/${field.fieldId}`, { method: 'PUT', body: { value: number } })
-  if (originalNumberField(await api(`/issues/${issueId}`)).value !== number) {
+  await api(`/issues/${issueId}/fields/${field.fieldId}`, { ref, method: 'PUT', body: { value: number } })
+  if (originalNumberField(await api(`/issues/${issueId}`, { ref })).value !== number) {
     throw new Error(`readback of issue ${issueId} does not show ${number}`)
   }
   const count = (await listRows()).filter((row) => row.fields['原编号'] === number).length

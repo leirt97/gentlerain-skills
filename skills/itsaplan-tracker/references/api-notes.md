@@ -4,9 +4,10 @@ itsaplan 是本机 Docker 自托管实例，完整契约见 `GET <apiUrl>/docs/j
 
 ## 连接
 
-- `~/.itsaplan/bootstrap.json`（权限 600）提供 `apiUrl`、`appUrl`、`apiKey`；其中的项目和 ID 是迁移时的快照，项目以 `GET /projects`（返回各项目 `ref`）为准。key 只在进程内使用，不写入命令行回显、日志、评论或文档。
-- 请求头：`x-api-key: <apiKey>`、`Origin: <appUrl>`。
-- key 默认 90 天有效，当前 key 到 2027-01-20 过期；过期后返回 401，需在 Web 设置中新建 key 并写回 `bootstrap.json`。
+- `~/.itsaplan/bootstrap.json`（权限 600）提供 `apiUrl`、`appUrl`、`agentKeys`、`adminApiKey`；其中的其他项目和 ID 是迁移时的快照，以接口为准。key 只在进程内使用，不写入命令行回显、日志、评论或文档。
+- 读写事项一律用所在项目的 AI 代理 key：`agentKeys[<ref>]`。每个团队有一个 external 类型的 AI 代理「AI 助手」（大河湖 `@ai-dahehu`、蜂巢 `@ai-fengchao`），代理只能访问本团队的项目，所以按项目 ref 选 key；改动和评论都记在代理名下。项目列表取 `agentKeys` 的键。代理 key 不过期，泄露或失效时由管理员调用 `POST /teams/<teamId>/ai-agents/<agentId>/regenerate-key` 重新生成，并写回 `agentKeys`。
+- `adminApiKey` 是管理员账号的 key，只用于代理管理、实例设置等代理没有权限的操作，不用于读写事项。它默认 90 天有效，当前 key 到 2027-01-20 过期；过期后返回 401，需在 Web 设置中新建 key 并写回。新增项目时，把项目加入本团队代理（`PUT /teams/<teamId>/ai-agents/<agentId>/projects`），并在 `agentKeys` 里补上该项目的 key。
+- 请求头：`x-api-key: <key>`、`Origin: <appUrl>`。
 - 速率限制按 key 计：两次请求间隔不超过 1 秒时计数累加，累计 100 次后拒绝，直到空闲超过 1 秒才清零。拒绝时 API 返回 500（日志为 429 `RATE_LIMITED`）。批量操作每约 90 个请求停 1.5 秒，遇 500 退避后重试；重试前确认写操作没有生效，避免重复发评论。
 
 ## 运维

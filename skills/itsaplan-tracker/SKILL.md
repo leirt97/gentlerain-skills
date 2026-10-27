@@ -5,7 +5,7 @@ description: 管理 itsaplan（It's a Plan）待办：新建功能或问题并�
 
 # itsaplan 待办
 
-itsaplan 中每条待办是一个事项，`事项类型` 区分 `功能` 与 `问题`。项目即产品（如大河湖 `dahehu.RHL`、蜂巢 `fengchao.FC`，全部项目以 `GET /projects` 为准），版本由 `归属迭代` 字段区分。
+itsaplan 中每条待办是一个事项，`事项类型` 区分 `功能` 与 `问题`。项目即产品（如大河湖 `dahehu.RHL`、蜂巢 `fengchao.FC`，全部项目以 `bootstrap.json` 的 `agentKeys` 为准），版本由 `归属迭代` 字段区分。
 
 ## 执行
 
