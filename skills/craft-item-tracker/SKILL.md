@@ -1,6 +1,6 @@
 ---
 name: craft-item-tracker
-description: 跟踪用户的想法、生活事项和需要了解梳理推进的工作事项（Craft「事项跟踪」合集）：用户说起这类事开始做、正在做、做完或放下时记录进展；也用于新建事项、改状态或本周计划、查看进行中/本周/停滞事项。具体的缺陷、功能和编码修复用 itsaplan-tracker。
+description: 跟踪用户的想法、生活事项和需要了解梳理推进的工作事项（Craft「事项跟踪」合集）：用户说起这类事开始做、正在做、做完或放下时记录进展；也用于新建事项、迁入 Craft 收件箱待办、改状态或本周计划、查看进行中/本周/停滞事项。具体的缺陷、功能和编码修复用 itsaplan-tracker。
 ---
 
 # 想法、生活与工作事项
@@ -13,6 +13,8 @@ node scripts/tracker.mjs add --title <标题> --type <想法|生活|工作> [--s
 node scripts/tracker.mjs log --item <ID|标题片段> --text <进展> [--status <新状态>]
 node scripts/tracker.mjs set --item <ID|标题片段> [--week|--no-week] [--due YYYY-MM-DD] [--next <下一步>]
 node scripts/tracker.mjs review [--write]
+node scripts/tracker.mjs inbox
+node scripts/tracker.mjs import --task <待办ID> (--type <想法|生活|工作> [--title <标题>] | --item <ID|标题片段>)
 node scripts/tracker.mjs now   # 当前时间戳；raycast/timestamp.sh 用它给用户手写记录粘贴时间
 ```
 
@@ -39,6 +41,16 @@ node scripts/tracker.mjs now   # 当前时间戳；raycast/timestamp.sh 用它�
 
 - 进展只记有信息量的内容：做了什么决定、拿到什么结果、卡在哪里，一句话写清楚。
 - 状态变化用 `log --status`，`--text` 写原因；暂停写成 `暂停：<原因>｜恢复条件：<条件>`。
+
+## 收件箱
+
+待办统一归到事项里管理：用户想到的待办先放进 Craft 任务收件箱，再让 AI 迁入。用户说收件箱有新待办时，`inbox` 列出，逐条按「范围」和查重判断去处：
+
+- 需要单独跟踪的，`import --type` 建新事项；工作事项用 `--title` 加项目前缀。
+- 是已有事项其中一步的，`import --item` 加进该事项的 `## 清单`。
+- 拿不准归属的，问用户。
+
+`import` 会把原待办标为已取消，移到 Craft 的 logbook，需要时可以在那里恢复。全部迁完后 `inbox` 显示没有待办。
 
 ## 执行
 

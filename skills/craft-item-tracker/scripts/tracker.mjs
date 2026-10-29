@@ -12,6 +12,7 @@ const { buildClient, craftRequest } = await import(pathToFileURL(join(CRAFT_DIR,
 const COLLECTION_ID = "956fbcb3-11a8-11e0-7011-16006bbceb87";
 const ITEMS_PATH = `/collections/${COLLECTION_ID}/items`;
 const LOG_HEADING = "## 进展记录";
+const CHECKLIST_HEADING = "## 清单";
 const INITIAL_BODY = `## 目标\n\n做成什么样算完成（一两句）\n\n${LOG_HEADING}\n`;
 const WATCHED_STATUSES = ["进行中", "等待他人"];
 const STALE_DAYS = 2;
@@ -45,6 +46,39 @@ async function log({ item, text, status }) {
 
   await updateProperties(target.id, { [keys.状态]: status });
   return [line, ...(await moveChildren(target, status, items, keys))].join("\n");
+}
+
+async function inbox() {
+  const tasks = await readInbox();
+  const lines = tasks.map((task) => [taskText(task), task.taskInfo.scheduleDate && `计划 ${task.taskInfo.scheduleDate}`, task.id]);
+  return lines.map((fields) => fields.filter(Boolean).join(" | ")).join("\n") || "（收件箱没有待办）";
+}
+
+// The original to-do is cancelled, which moves it to the Craft logbook, so every to-do is tracked in one place.
+async function importTask({ task: taskId, type, item, title }) {
+  if (Boolean(type) === Boolean(item)) throw new Error("import 需要 --type（建新事项）或 --item（加进已有事项的清单）之一");
+  const task = (await readInbox()).find((entry) => entry.id === taskId);
+  if (!task) throw new Error(`收件箱里没有待办 ${taskId}`);
+
+  const result = type ? await importAsItem(task, type, title) : await importIntoChecklist(task, item);
+  await api("PUT", "/tasks", { body: { tasksToUpdate: [{ id: task.id, taskInfo: { state: "canceled" } }] } });
+  return result;
+}
+
+async function importAsItem(task, type, title = taskText(task)) {
+  const itemId = await add({ title, type });
+  const scheduled = task.taskInfo.scheduleDate ? `，原计划日期 ${task.taskInfo.scheduleDate}` : "";
+  return `${title}：${await log({ item: itemId, text: `从 Craft 任务收件箱迁入${scheduled}` })}`;
+}
+
+async function importIntoChecklist(task, item) {
+  const keys = await readKeys();
+  const target = findItem(await readItems(), item, keys.title);
+  const entry = `- [ ] ${taskText(task)}`;
+  const checklist = target.content?.find((block) => block.markdown === CHECKLIST_HEADING);
+  if (checklist) await insertMarkdown(entry, { position: "after", siblingId: checklist.id });
+  else await insertMarkdown(`${CHECKLIST_HEADING}\n\n${entry}`, { position: "before", siblingId: logHeading(target, keys).id });
+  return `${target[keys.title]}：${await appendLog(target, keys, `收件箱待办「${taskText(task)}」加进清单`)}`;
 }
 
 async function set({ item, week, due, next }) {
@@ -100,12 +134,15 @@ async function review({ write = false }) {
 }
 
 async function appendLog(item, keys, text, status) {
+  const line = `${formatLogTime(new Date())}  ${text}${status ? `  → ${status}` : ""}`;
+  await insertMarkdown(line, { position: "after", siblingId: logHeading(item, keys).id });
+  return line;
+}
+
+function logHeading(item, keys) {
   const heading = item.content?.find((block) => block.markdown === LOG_HEADING);
   if (!heading) throw new Error(`「${item[keys.title]}」的正文里没有「${LOG_HEADING}」标题`);
-
-  const line = `${formatLogTime(new Date())}  ${text}${status ? `  → ${status}` : ""}`;
-  await insertMarkdown(line, { position: "after", siblingId: heading.id });
-  return line;
+  return heading;
 }
 
 // Children are the items linked from the parent's body.
@@ -136,6 +173,11 @@ async function readKeys() {
 
 async function readItems() {
   const { items } = await api("GET", ITEMS_PATH, { query: { maxDepth: 1 } });
+  return items;
+}
+
+async function readInbox() {
+  const { items } = await api("GET", "/tasks", { query: { scope: "inbox" } });
   return items;
 }
 
@@ -170,6 +212,10 @@ function formatItem(item, keys) {
     `最后推进 ${lastLogDate(item) ?? "无"}`,
   ];
   return `${item[keys.title]} | ${fields.filter(Boolean).join(" | ")} | ${item.id}`;
+}
+
+export function taskText(task) {
+  return task.markdown.replace(/^- \[ \] /, "");
 }
 
 export function defaultStatus(type) {
@@ -232,6 +278,8 @@ const COMMANDS = {
   set: { run: set, required: ["item"] },
   list: { run: list, required: [] },
   review: { run: review, required: [] },
+  inbox: { run: inbox, required: [] },
+  import: { run: importTask, required: ["task"] },
   now: { run: () => `${formatLogTime(new Date())}  `, required: [] },
 };
 
@@ -249,6 +297,7 @@ async function main() {
       item: { type: "string" },
       text: { type: "string" },
       write: { type: "boolean" },
+      task: { type: "string" },
     },
   });
   const command = COMMANDS[positionals[0]];

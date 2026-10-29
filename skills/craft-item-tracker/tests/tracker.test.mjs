@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { childIds, daysBetween, defaultStatus, followedStatus, formatLogTime, lastLogDate } from '../scripts/tracker.mjs'
+import { childIds, daysBetween, defaultStatus, followedStatus, formatLogTime, lastLogDate, taskText } from '../scripts/tracker.mjs'
 
 const item = (...lines) => ({ content: lines.map((markdown) => ({ markdown })) })
 
@@ -43,4 +43,9 @@ test('children pause and are dropped with the parent, then resume to their recor
     assert.equal(followedStatus('进行中', ownPause, '暂停'), undefined)
     assert.equal(followedStatus('完成', followed, '暂停'), undefined)
     assert.equal(followedStatus('进行中', item(), '待做'), undefined)
+})
+
+test('an inbox to-do keeps its text without the checkbox', () => {
+    assert.equal(taskText({ markdown: '- [ ] 办房产证' }), '办房产证')
+    assert.equal(taskText({ markdown: '- [ ] 豆包输入法，快捷词语录入' }), '豆包输入法，快捷词语录入')
 })
