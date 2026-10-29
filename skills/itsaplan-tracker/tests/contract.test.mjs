@@ -20,7 +20,7 @@ test('user-provided todos keep the DYYMMDDNNN contract, allocated from 原编号
 })
 
 test('status chain is defined once and fix rounds are comments', () => {
-    assert.match(workflow, /新问题 → AI 处理中 → AI 本地已修复 → AI 已验证 → 用户已验证 → 已发版 → 已关闭/)
+    assert.match(workflow, /新问题 → AI 处理中 → AI 已处理 → AI 已验证 → 用户已验证 → 已发版 → 已关闭/)
     assert.match(logFormat, /每轮一条评论/)
     assert.match(skill, /修复轮次只发评论/)
 })
