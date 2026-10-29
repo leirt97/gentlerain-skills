@@ -16,6 +16,10 @@ const INITIAL_BODY = `## 目标\n\n做成什么样算完成（一两句）\n\n${
 const WATCHED_STATUSES = ["进行中", "等待他人"];
 const STALE_DAYS = 2;
 const MAX_IN_PROGRESS = 3;
+const FOLLOWED_STATUSES = ["暂停", "放弃"];
+const CLOSED_STATUSES = ["完成", "放弃"];
+const FOLLOW_PATTERN = /随父事项「[^」]*」(?:暂停|放弃)，原状态：(\S+)/;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}/;
 
 let client;
 const api = (method, path, options) => craftRequest((client ??= buildClient()), method, path, options);
@@ -34,14 +38,13 @@ async function add({ title, type, status = defaultStatus(type), week = false, du
 
 async function log({ item, text, status }) {
   const keys = await readKeys();
-  const target = findItem(await readItems(), item, keys.title);
-  const heading = target.content?.find((block) => block.markdown === LOG_HEADING);
-  if (!heading) throw new Error(`「${target[keys.title]}」的正文里没有「${LOG_HEADING}」标题`);
+  const items = await readItems();
+  const target = findItem(items, item, keys.title);
+  const line = await appendLog(target, keys, text, status);
+  if (!status) return line;
 
-  const line = `${formatLogTime(new Date())}  ${text}${status ? `  → ${status}` : ""}`;
-  await insertMarkdown(line, { position: "after", siblingId: heading.id });
-  if (status) await updateProperties(target.id, { [keys.状态]: status });
-  return line;
+  await updateProperties(target.id, { [keys.状态]: status });
+  return [line, ...(await moveChildren(target, status, items, keys))].join("\n");
 }
 
 async function set({ item, week, due, next }) {
@@ -94,6 +97,33 @@ async function review({ write = false }) {
   const markdown = lines.join("\n\n");
   if (write) await insertMarkdown(markdown, { position: "end", date: "today" });
   return markdown;
+}
+
+async function appendLog(item, keys, text, status) {
+  const heading = item.content?.find((block) => block.markdown === LOG_HEADING);
+  if (!heading) throw new Error(`「${item[keys.title]}」的正文里没有「${LOG_HEADING}」标题`);
+
+  const line = `${formatLogTime(new Date())}  ${text}${status ? `  → ${status}` : ""}`;
+  await insertMarkdown(line, { position: "after", siblingId: heading.id });
+  return line;
+}
+
+// Children are the items linked from the parent's body.
+async function moveChildren(parent, parentStatus, items, keys) {
+  const ids = childIds(parent);
+  const lines = [];
+  for (const child of items.filter((entry) => ids.includes(entry.id))) {
+    const childStatus = child.properties[keys.状态];
+    const next = followedStatus(parentStatus, child, childStatus);
+    if (!next) continue;
+
+    const text = FOLLOWED_STATUSES.includes(parentStatus)
+      ? `随父事项「${parent[keys.title]}」${parentStatus}，原状态：${childStatus}`
+      : `随父事项「${parent[keys.title]}」恢复`;
+    lines.push(`${child[keys.title]}：${await appendLog(child, keys, text, next)}`);
+    await updateProperties(child.id, { [keys.状态]: next });
+  }
+  return lines;
 }
 
 // Property keys change when the schema is edited in Craft, so they are resolved by name on every run.
@@ -165,16 +195,31 @@ export function formatLogTime(date) {
   return `${parts.year}-${parts.month}-${parts.day} ${parts.weekday} ${parts.dayPeriod}${parts.hour}:${parts.minute}`;
 }
 
-// The newest entry is the first dated line after the 进展记录 heading.
 export function lastLogDate(item) {
+  return latestLogLine(item)?.match(DATE_PATTERN)?.[0];
+}
+
+// The newest entry is the first dated line after the 进展记录 heading.
+function latestLogLine(item) {
   const blocks = item.content ?? [];
   const headingIndex = blocks.findIndex((block) => block.markdown === LOG_HEADING);
   if (headingIndex === -1) return undefined;
-  for (const block of blocks.slice(headingIndex + 1)) {
-    const date = block.markdown?.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
-    if (date) return date;
+  return blocks.slice(headingIndex + 1).find((block) => DATE_PATTERN.test(block.markdown ?? ""))?.markdown;
+}
+
+export function childIds(item) {
+  const links = (item.content ?? []).flatMap((block) => [...(block.markdown ?? "").matchAll(/block:\/\/([0-9a-f-]{36})/gi)]);
+  return [...new Set(links.map((match) => match[1]))];
+}
+
+// A child pauses or is dropped with its parent and, when the parent resumes, returns to the status recorded in its
+// follow line. A child paused for its own reason has a different newest line and stays paused.
+export function followedStatus(parentStatus, child, childStatus) {
+  if (FOLLOWED_STATUSES.includes(parentStatus)) {
+    return CLOSED_STATUSES.includes(childStatus) || childStatus === parentStatus ? undefined : parentStatus;
   }
-  return undefined;
+  if (CLOSED_STATUSES.includes(parentStatus) || !FOLLOWED_STATUSES.includes(childStatus)) return undefined;
+  return latestLogLine(child)?.match(FOLLOW_PATTERN)?.[1];
 }
 
 export function daysBetween(from, to) {
