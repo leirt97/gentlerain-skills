@@ -182,7 +182,7 @@ async function readInbox() {
 }
 
 function findItem(items, ref, titleKey) {
-  const byId = items.find((item) => item.id === ref);
+  const byId = items.find((item) => item.id === itemId(ref));
   if (byId) return byId;
 
   const matches = items.filter((item) => item[titleKey]?.includes(ref));
@@ -212,6 +212,11 @@ function formatItem(item, keys) {
     `最后推进 ${lastLogDate(item) ?? "无"}`,
   ];
   return `${item[keys.title]} | ${fields.filter(Boolean).join(" | ")} | ${item.id}`;
+}
+
+// Accepts the item ID or the link Craft copies for the item (craftdocs://open?…&blockId=<ID>).
+export function itemId(ref) {
+  return ref.match(/[?&]blockId=([0-9a-f-]{36})/i)?.[1].toLowerCase() ?? ref;
 }
 
 export function taskText(task) {

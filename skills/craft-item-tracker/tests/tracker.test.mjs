@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { childIds, daysBetween, defaultStatus, followedStatus, formatLogTime, lastLogDate, taskText } from '../scripts/tracker.mjs'
+import { childIds, daysBetween, defaultStatus, followedStatus, formatLogTime, itemId, lastLogDate, taskText } from '../scripts/tracker.mjs'
 
 const item = (...lines) => ({ content: lines.map((markdown) => ({ markdown })) })
 
@@ -48,4 +48,12 @@ test('children pause and are dropped with the parent, then resume to their recor
 test('an inbox to-do keeps its text without the checkbox', () => {
     assert.equal(taskText({ markdown: '- [ ] 办房产证' }), '办房产证')
     assert.equal(taskText({ markdown: '- [ ] 豆包输入法，快捷词语录入' }), '豆包输入法，快捷词语录入')
+})
+
+test('an item is found by its ID or by the link Craft copies for it', () => {
+    const id = 'ed252a33-dd14-be21-3d46-b25038cd49f3'
+    assert.equal(itemId(`craftdocs://open?spaceId=0013697c-dced-8fb5-6bb2-737a5f12a5c1&blockId=${id}`), id)
+    assert.equal(itemId(`craftdocs://open?blockId=${id.toUpperCase()}&spaceId=x`), id)
+    assert.equal(itemId(id), id)
+    assert.equal(itemId('房产证'), '房产证')
 })
