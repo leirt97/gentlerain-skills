@@ -13,13 +13,14 @@ const COLLECTION_ID = "956fbcb3-11a8-11e0-7011-16006bbceb87";
 const ITEMS_PATH = `/collections/${COLLECTION_ID}/items`;
 const LOG_HEADING = "## 进展记录";
 const CHECKLIST_HEADING = "## 清单";
-const INITIAL_BODY = `## 目标\n\n做成什么样算完成（一两句）\n\n${LOG_HEADING}\n`;
+const PAGE_BREAK = "*******";
+const INITIAL_BODY = `## 目标\n\n做成什么样算完成（一两句）\n\n${PAGE_BREAK}\n\n${LOG_HEADING}\n`;
 const WATCHED_STATUSES = ["进行中", "等待他人"];
 const STALE_DAYS = 2;
 const MAX_IN_PROGRESS = 3;
 const FOLLOWED_STATUSES = ["暂停", "放弃"];
 const CLOSED_STATUSES = ["完成", "放弃"];
-const FOLLOW_PATTERN = /随父事项「[^」]*」(?:暂停|放弃)，原状态：(\S+)/;
+const FOLLOW_PATTERN = /随父事项「[^」]*」(?:暂停|放弃)/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}/;
 
 let client;
@@ -77,7 +78,7 @@ async function importIntoChecklist(task, item) {
   const entry = `- [ ] ${taskText(task)}`;
   const checklist = target.content?.find((block) => block.markdown === CHECKLIST_HEADING);
   if (checklist) await insertMarkdown(entry, { position: "after", siblingId: checklist.id });
-  else await insertMarkdown(`${CHECKLIST_HEADING}\n\n${entry}`, { position: "before", siblingId: logHeading(target, keys).id });
+  else await insertMarkdown(`${CHECKLIST_HEADING}\n\n${entry}\n\n${PAGE_BREAK}`, { position: "before", siblingId: logHeading(target, keys).id });
   return `${target[keys.title]}：${await appendLog(target, keys, `收件箱待办「${taskText(task)}」加进清单`)}`;
 }
 
@@ -133,10 +134,14 @@ async function review({ write = false }) {
   return markdown;
 }
 
+// An entry is a time block, the content, and a 原状态 → 新状态 block when the status changes; page breaks separate entries.
 async function appendLog(item, keys, text, status) {
-  const line = `${formatLogTime(new Date())}  ${text}${status ? `  → ${status}` : ""}`;
-  await insertMarkdown(line, { position: "after", siblingId: logHeading(item, keys).id });
-  return line;
+  const heading = logHeading(item, keys);
+  const entry = [formatLogTime(new Date()), text];
+  if (status) entry.push(`${item.properties[keys.状态]} → ${status}`);
+  const hasOlderEntry = item.content.at(-1) !== heading;
+  await insertMarkdown([...entry, ...(hasOlderEntry ? [PAGE_BREAK] : [])].join("\n\n"), { position: "after", siblingId: heading.id });
+  return entry.join("\n");
 }
 
 function logHeading(item, keys) {
@@ -154,9 +159,7 @@ async function moveChildren(parent, parentStatus, items, keys) {
     const next = followedStatus(parentStatus, child, childStatus);
     if (!next) continue;
 
-    const text = FOLLOWED_STATUSES.includes(parentStatus)
-      ? `随父事项「${parent[keys.title]}」${parentStatus}，原状态：${childStatus}`
-      : `随父事项「${parent[keys.title]}」恢复`;
+    const text = `随父事项「${parent[keys.title]}」${FOLLOWED_STATUSES.includes(parentStatus) ? parentStatus : "恢复"}`;
     lines.push(`${child[keys.title]}：${await appendLog(child, keys, text, next)}`);
     await updateProperties(child.id, { [keys.状态]: next });
   }
@@ -255,15 +258,18 @@ export function formatLogTime(date) {
 }
 
 export function lastLogDate(item) {
-  return latestLogLine(item)?.match(DATE_PATTERN)?.[0];
+  return latestEntry(item)?.match(DATE_PATTERN)?.[0];
 }
 
-// The newest entry is the first dated line after the 进展记录 heading.
-function latestLogLine(item) {
+// The newest entry runs from the first dated block after the 进展记录 heading to the next page break or dated block.
+export function latestEntry(item) {
   const blocks = item.content ?? [];
+  const isDated = (block) => DATE_PATTERN.test(block.markdown ?? "");
   const headingIndex = blocks.findIndex((block) => block.markdown === LOG_HEADING);
-  if (headingIndex === -1) return undefined;
-  return blocks.slice(headingIndex + 1).find((block) => DATE_PATTERN.test(block.markdown ?? ""))?.markdown;
+  const start = blocks.findIndex((block, index) => headingIndex !== -1 && index > headingIndex && isDated(block));
+  if (start === -1) return undefined;
+  const end = blocks.findIndex((block, index) => index > start && (block.markdown === PAGE_BREAK || isDated(block)));
+  return blocks.slice(start, end === -1 ? undefined : end).map((block) => block.markdown).join("\n");
 }
 
 export function childIds(item) {
@@ -278,7 +284,10 @@ export function followedStatus(parentStatus, child, childStatus) {
     return CLOSED_STATUSES.includes(childStatus) || childStatus === parentStatus ? undefined : parentStatus;
   }
   if (CLOSED_STATUSES.includes(parentStatus) || !FOLLOWED_STATUSES.includes(childStatus)) return undefined;
-  return latestLogLine(child)?.match(FOLLOW_PATTERN)?.[1];
+  const entry = latestEntry(child) ?? "";
+  if (!FOLLOW_PATTERN.test(entry)) return undefined;
+  // One-line entries written before the status block existed carry 原状态：<状态> in the text.
+  return entry.match(/原状态：(\S+)/)?.[1] ?? entry.match(/^(\S+) → \S+$/m)?.[1];
 }
 
 export function daysBetween(from, to) {

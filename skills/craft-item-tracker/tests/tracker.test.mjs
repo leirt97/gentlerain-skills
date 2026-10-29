@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { childIds, daysBetween, defaultStatus, followedStatus, formatLogTime, itemId, lastLogDate, taskText } from '../scripts/tracker.mjs'
+import { childIds, daysBetween, defaultStatus, followedStatus, formatLogTime, itemId, lastLogDate, latestEntry, taskText } from '../scripts/tracker.mjs'
 
 const item = (...lines) => ({ content: lines.map((markdown) => ({ markdown })) })
 
@@ -43,6 +43,15 @@ test('children pause and are dropped with the parent, then resume to their recor
     assert.equal(followedStatus('进行中', ownPause, '暂停'), undefined)
     assert.equal(followedStatus('完成', followed, '暂停'), undefined)
     assert.equal(followedStatus('进行中', item(), '待做'), undefined)
+    const followedEntry = item('## 进展记录', '2026-10-31 星期六 上午9:00', '随父事项「185 手机号」暂停', '等待他人 → 暂停', '*******', '2026-10-29 星期四 下午3:20  旧记录')
+    assert.equal(followedStatus('进行中', followedEntry, '暂停'), '等待他人')
+})
+
+test('the newest entry ends at the next page break or dated block', () => {
+    const entry = item('## 进展记录', '2026-10-29 星期四 下午4:38', '验收完成', '- Web 已验证', '进行中 → 完成', '*******', '2026-10-29 星期四 下午3:50  开始')
+    assert.equal(latestEntry(entry), '2026-10-29 星期四 下午4:38\n验收完成\n- Web 已验证\n进行中 → 完成')
+    assert.equal(latestEntry(item('## 进展记录', '2026-10-29 星期四 下午3:50  一行记录', '2026-10-28 星期三 上午9:00  更早')), '2026-10-29 星期四 下午3:50  一行记录')
+    assert.equal(lastLogDate(entry), '2026-10-29')
 })
 
 test('an inbox to-do keeps its text without the checkbox', () => {
