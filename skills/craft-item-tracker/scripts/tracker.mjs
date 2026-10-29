@@ -20,6 +20,9 @@ const STALE_DAYS = 2;
 const MAX_IN_PROGRESS = 3;
 const FOLLOWED_STATUSES = ["暂停", "放弃"];
 const CLOSED_STATUSES = ["完成", "放弃"];
+const AI_FIELD = "AI 进度";
+const AI_STAGES = ["AI 规划中", "AI 执行中", "AI 已处理", "AI 已验证"];
+const AI_DONE_STAGES = ["AI 已处理", "AI 已验证"];
 const FOLLOW_PATTERN = /随父事项「[^」]*」(?:暂停|放弃)/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}/;
 
@@ -38,14 +41,16 @@ async function add({ title, type, status = defaultStatus(type), week = false, du
   return itemId;
 }
 
-async function log({ item, text, status }) {
+async function log({ item, text, status, ai }) {
+  requireAiStage(ai);
   const keys = await readKeys();
   const items = await readItems();
   const target = findItem(items, item, keys.title);
-  const line = await appendLog(target, keys, text, status);
+  const changes = { ...(status && { [keys.状态]: status }), ...(ai && { [keys[AI_FIELD]]: ai }) };
+  const line = await appendLog(target, keys, text, changes);
+  if (Object.keys(changes).length) await updateProperties(target.id, changes);
   if (!status) return line;
 
-  await updateProperties(target.id, { [keys.状态]: status });
   return [line, ...(await moveChildren(target, status, items, keys))].join("\n");
 }
 
@@ -95,20 +100,24 @@ async function set({ item, week, due, next }) {
   return formatItem(findItem(await readItems(), target.id, keys.title), keys);
 }
 
-async function list({ item, status, week, type }) {
+async function list({ item, status, week, type, ai }) {
+  requireAiStage(ai);
   const keys = await readKeys();
   let items = await readItems();
   if (item) items = [findItem(items, item, keys.title)];
   if (status) items = items.filter((entry) => entry.properties[keys.状态] === status);
   if (week !== undefined) items = items.filter((entry) => Boolean(entry.properties[keys.本周]) === week);
   if (type) items = items.filter((entry) => entry.properties[keys.类型] === type);
+  if (ai) items = items.filter((entry) => entry.properties[keys[AI_FIELD]] === ai);
   return items.map((entry) => formatItem(entry, keys)).join("\n") || "（没有匹配的事项）";
 }
 
 async function review({ write = false }) {
   const keys = await readKeys();
   const today = formatLogTime(new Date()).slice(0, 10);
-  const watched = (await readItems()).filter((item) => WATCHED_STATUSES.includes(item.properties[keys.状态]));
+  const items = await readItems();
+  const watched = items.filter((item) => WATCHED_STATUSES.includes(item.properties[keys.状态]));
+  const awaiting = items.filter((item) => awaitsAcceptance(item.properties[keys.状态], item.properties[keys[AI_FIELD]]));
   const inProgressCount = watched.filter((item) => item.properties[keys.状态] === "进行中").length;
 
   const staleLines = [];
@@ -126,6 +135,9 @@ async function review({ write = false }) {
   if (inProgressCount > MAX_IN_PROGRESS) {
     lines.push(`进行中 ${inProgressCount} 件，超过 ${MAX_IN_PROGRESS} 件，检查是否有事项实际已经停了。`);
   }
+  if (awaiting.length) {
+    lines.push("等你验收（AI 已做完，确认后改为完成）：", ...awaiting.map((item) => `- ${item[keys.title]}：${item.properties[keys[AI_FIELD]]}`));
+  }
   lines.push("今天有没有做了、但事项表里没有的事？");
 
   // A single newline keeps two sentences in one Craft block.
@@ -134,11 +146,11 @@ async function review({ write = false }) {
   return markdown;
 }
 
-// An entry is a time block, the content, and a 原状态 → 新状态 block when the status changes; page breaks separate entries.
-async function appendLog(item, keys, text, status) {
+// An entry is a time block, the content, and one 原值 → 新值 block per changed field; page breaks separate entries.
+async function appendLog(item, keys, text, changes = {}) {
   const heading = logHeading(item, keys);
-  const entry = [formatLogTime(new Date()), text];
-  if (status) entry.push(`${item.properties[keys.状态]} → ${status}`);
+  const changeLines = Object.entries(changes).map(([key, to]) => changeLine(item.properties[key], to));
+  const entry = [formatLogTime(new Date()), text, ...changeLines];
   const hasOlderEntry = item.content.at(-1) !== heading;
   await insertMarkdown([...entry, ...(hasOlderEntry ? [PAGE_BREAK] : [])].join("\n\n"), { position: "after", siblingId: heading.id });
   return entry.join("\n");
@@ -160,7 +172,7 @@ async function moveChildren(parent, parentStatus, items, keys) {
     if (!next) continue;
 
     const text = `随父事项「${parent[keys.title]}」${FOLLOWED_STATUSES.includes(parentStatus) ? parentStatus : "恢复"}`;
-    lines.push(`${child[keys.title]}：${await appendLog(child, keys, text, next)}`);
+    lines.push(`${child[keys.title]}：${await appendLog(child, keys, text, { [keys.状态]: next })}`);
     await updateProperties(child.id, { [keys.状态]: next });
   }
   return lines;
@@ -209,6 +221,7 @@ function formatItem(item, keys) {
   const fields = [
     p[keys.类型],
     p[keys.状态],
+    p[keys[AI_FIELD]],
     p[keys.本周] ? "本周" : "",
     p[keys.截止日期] ? `截止 ${p[keys.截止日期]}` : "",
     p[keys.下一步] ? `下一步：${p[keys.下一步]}` : "",
@@ -232,6 +245,15 @@ async function resolveShortLink(ref) {
 
 export function taskText(task) {
   return task.markdown.replace(/^- \[ \] /, "");
+}
+
+export function changeLine(from, to) {
+  return `${from || "无"} → ${to}`;
+}
+
+// Work the AI finished stays open until the user accepts it and marks the item 完成.
+export function awaitsAcceptance(status, aiStage) {
+  return AI_DONE_STAGES.includes(aiStage) && !CLOSED_STATUSES.includes(status);
 }
 
 export function defaultStatus(type) {
@@ -320,6 +342,7 @@ async function main() {
       text: { type: "string" },
       write: { type: "boolean" },
       task: { type: "string" },
+      ai: { type: "string" },
     },
   });
   const command = COMMANDS[positionals[0]];
@@ -330,6 +353,10 @@ async function main() {
   const envFile = join(CRAFT_DIR, ".env.local");
   if (!process.env.CRAFT_API_KEY && existsSync(envFile)) process.loadEnvFile(envFile);
   console.log(await command.run(values));
+}
+
+function requireAiStage(ai) {
+  if (ai && !AI_STAGES.includes(ai)) throw new Error(`--ai 只能是：${AI_STAGES.join("、")}`);
 }
 
 function requireOptions(values, names) {

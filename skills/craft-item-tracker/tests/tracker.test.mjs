@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { childIds, daysBetween, defaultStatus, followedStatus, formatLogTime, itemId, lastLogDate, latestEntry, taskText } from '../scripts/tracker.mjs'
+import { awaitsAcceptance, changeLine, childIds, daysBetween, defaultStatus, followedStatus, formatLogTime, itemId, lastLogDate, latestEntry, taskText } from '../scripts/tracker.mjs'
 
 const item = (...lines) => ({ content: lines.map((markdown) => ({ markdown })) })
 
@@ -66,4 +66,17 @@ test('an item is found by its ID or by the link Craft copies for it', () => {
     assert.equal(itemId(`https://docs.craft.do/editor/d/0013697c-dced-8fb5-6bb2-737a5f12a5c1/8d00cc1f-abe7-7a20-0f42-f2a9db101538/b/${id}?s=token`), id)
     assert.equal(itemId(id), id)
     assert.equal(itemId('房产证'), '房产证')
+})
+
+test('a field change reads 原值 → 新值, with 无 for an empty field', () => {
+    assert.equal(changeLine('进行中', '完成'), '进行中 → 完成')
+    assert.equal(changeLine(undefined, 'AI 规划中'), '无 → AI 规划中')
+})
+
+test('work the AI finished waits for acceptance until the item is closed', () => {
+    assert.equal(awaitsAcceptance('进行中', 'AI 已处理'), true)
+    assert.equal(awaitsAcceptance('等待他人', 'AI 已验证'), true)
+    assert.equal(awaitsAcceptance('进行中', 'AI 执行中'), false)
+    assert.equal(awaitsAcceptance('完成', 'AI 已验证'), false)
+    assert.equal(awaitsAcceptance('进行中', undefined), false)
 })

@@ -8,9 +8,9 @@ description: 跟踪用户的想法、生活事项和需要了解梳理推进的�
 事项保存在 Craft 文档「事项跟踪」的「事项」合集里，想法、生活和工作事项共用一张表。所有读写都用 `scripts/tracker.mjs`（Node 22+，依赖 `~/D/Craft` 里的 Craft API 客户端和凭据）：
 
 ```bash
-node scripts/tracker.mjs list [--item <ID|标题片段>] [--status <状态>] [--week|--no-week] [--type <想法|生活|工作>]
+node scripts/tracker.mjs list [--item <ID|标题片段>] [--status <状态>] [--week|--no-week] [--type <想法|生活|工作>] [--ai <AI 进度>]
 node scripts/tracker.mjs add --title <标题> --type <想法|生活|工作> [--status <状态>] [--week] [--due YYYY-MM-DD] [--next <下一步>]
-node scripts/tracker.mjs log --item <ID|标题片段> --text <进展> [--status <新状态>]
+node scripts/tracker.mjs log --item <ID|标题片段> --text <进展> [--status <新状态>] [--ai <AI 进度>]
 node scripts/tracker.mjs set --item <ID|标题片段> [--week|--no-week] [--due YYYY-MM-DD] [--next <下一步>]
 node scripts/tracker.mjs review [--write]
 node scripts/tracker.mjs inbox
@@ -32,6 +32,12 @@ node scripts/tracker.mjs now   # 当前时间戳；raycast/timestamp.sh 用它�
 - **本周**表示这周打算处理，与状态独立：本周 + 进行中、本周 + 待做都成立。
 - **截止日期**只填硬截止。
 - **下一步**只写当前一个具体动作，做完就改写成下一个。多步骤的清单写在事项正文里。
+- **AI 进度**表示交给 AI 的事做到哪一步，与状态独立；为空表示不在 AI 手上。AI 在做时状态照常是进行中，被卡住时是等待他人或暂停。
+  - `AI 规划中`：用户说交给 AI。先列出打算怎么做，用户点头后才动手。
+  - `AI 执行中`：开始实际搜索、整理或修改。
+  - `AI 已处理`：做完，结果已写进事项正文或进展记录。
+  - `AI 已验证`：结果用独立方式核对过（对照官方来源、改后回读等），核对依据写进进展记录。
+  - 用户看过结果并认可后，才把状态改为完成；AI 不自行改为完成。
 
 一条事项是一件需要单独跟踪进展的事。某个步骤要单独等别人、会跨好几周、或有自己的截止日期时，才拆成独立事项，把原事项正文里的那一步改成指向它的链接（`[标题](block://<ID>)`）。
 
@@ -40,10 +46,10 @@ node scripts/tracker.mjs now   # 当前时间戳；raycast/timestamp.sh 用它�
 ## 记录
 
 - 进展只记有信息量的内容：做了什么决定、拿到什么结果、卡在哪里。
-- 一条记录由三部分组成：时间单独一行，然后是内容，状态变化时最后一行写 `原状态 → 新状态`（只用「字段」里的状态名）。时间和状态行由 `log` 生成，`--text` 只写内容。
+- 一条记录由三部分组成：时间单独一行，然后是内容，字段变化时最后写 `原值 → 新值`，状态和 AI 进度各一行，只用「字段」里的取值。时间和变化行由 `log` 生成，`--text` 只写内容。
 - 内容简单时写一句；复杂时分条，在 `--text` 里用 `- ` 列表或空行分段，例如结论一行、已验证和未覆盖的各一条。
 - 正文的大块（目标、清单、进展记录）之间、记录与记录之间用分页符分隔，`add`、`log`、`import` 自动插入。
-- 状态变化用 `log --status`，`--text` 写原因；暂停写成 `暂停：<原因>｜恢复条件：<条件>`。
+- 状态变化用 `log --status`，AI 进度变化用 `log --ai`，`--text` 写原因或结果；暂停写成 `暂停：<原因>｜恢复条件：<条件>`。
 
 ## 收件箱
 
@@ -68,7 +74,7 @@ node scripts/tracker.mjs now   # 当前时间戳；raycast/timestamp.sh 用它�
 
 ## 回顾
 
-- **每日**：每晚 20:00 由 LaunchAgent `com.cutesunday.craft-tracker-review` 运行 `review --write`，把停滞事项写进当天 Daily Note；排查看 `~/Library/Logs/craft-tracker-review.log`。用户要求时直接运行 `review`。
+- **每日**：每晚 20:00 由 LaunchAgent `com.cutesunday.craft-tracker-review` 运行 `review --write`，把停滞事项和等用户验收的 AI 事项写进当天 Daily Note；排查看 `~/Library/Logs/craft-tracker-review.log`。用户要求时直接运行 `review`。
 - **每周**（用户发起）：逐条确认本周勾选，没做完的保留或 `set --no-week`；本周没有进展记录的进行中事项改为暂停或等待他人。
 
 改 description 后，用 `evals/` 的用例和 yao-meta-skill 的 `trigger_eval.py` 复测触发。
