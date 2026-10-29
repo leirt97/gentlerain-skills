@@ -232,6 +232,7 @@ const COMMANDS = {
   set: { run: set, required: ["item"] },
   list: { run: list, required: [] },
   review: { run: review, required: [] },
+  now: { run: () => `${formatLogTime(new Date())}  `, required: [] },
 };
 
 async function main() {

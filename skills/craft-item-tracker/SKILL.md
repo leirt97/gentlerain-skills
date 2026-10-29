@@ -13,6 +13,7 @@ node scripts/tracker.mjs add --title <标题> --type <想法|生活|工作> [--s
 node scripts/tracker.mjs log --item <ID|标题片段> --text <进展> [--status <新状态>]
 node scripts/tracker.mjs set --item <ID|标题片段> [--week|--no-week] [--due YYYY-MM-DD] [--next <下一步>]
 node scripts/tracker.mjs review [--write]
+node scripts/tracker.mjs now   # 当前时间戳；raycast/timestamp.sh 用它给用户手写记录粘贴时间
 ```
 
 ## 范围
