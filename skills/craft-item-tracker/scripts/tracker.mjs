@@ -154,7 +154,7 @@ function logHeading(item, keys) {
 async function moveChildren(parent, parentStatus, items, keys) {
   const ids = childIds(parent);
   const lines = [];
-  for (const child of items.filter((entry) => ids.includes(entry.id))) {
+  for (const child of items.filter((entry) => ids.includes(entry.id.toLowerCase()))) {
     const childStatus = child.properties[keys.状态];
     const next = followedStatus(parentStatus, child, childStatus);
     if (!next) continue;
@@ -185,7 +185,7 @@ async function readInbox() {
 }
 
 function findItem(items, ref, titleKey) {
-  const byId = items.find((item) => item.id === itemId(ref));
+  const byId = items.find((item) => item.id.toLowerCase() === itemId(ref).toLowerCase());
   if (byId) return byId;
 
   const matches = items.filter((item) => item[titleKey]?.includes(ref));
@@ -274,7 +274,7 @@ export function latestEntry(item) {
 
 export function childIds(item) {
   const links = (item.content ?? []).flatMap((block) => [...(block.markdown ?? "").matchAll(/block:\/\/([0-9a-f-]{36})/gi)]);
-  return [...new Set(links.map((match) => match[1]))];
+  return [...new Set(links.map((match) => match[1].toLowerCase()))];
 }
 
 // A child pauses or is dropped with its parent and, when the parent resumes, returns to the status recorded in its
