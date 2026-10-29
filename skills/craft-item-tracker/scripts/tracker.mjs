@@ -214,9 +214,17 @@ function formatItem(item, keys) {
   return `${item[keys.title]} | ${fields.filter(Boolean).join(" | ")} | ${item.id}`;
 }
 
-// Accepts the item ID or the link Craft copies for the item (craftdocs://open?…&blockId=<ID>).
+// Accepts the item ID or a link to the item: craftdocs://open?…&blockId=<ID>, or https://docs.craft.do/…/b/<ID>.
 export function itemId(ref) {
-  return ref.match(/[?&]blockId=([0-9a-f-]{36})/i)?.[1].toLowerCase() ?? ref;
+  return ref.match(/(?:[?&]blockId=|\/b\/)([0-9a-f-]{36})/i)?.[1].toLowerCase() ?? ref;
+}
+
+// 共享 → 复制链接 in Craft gives a short link that redirects to the https://docs.craft.do/…/b/<ID> form.
+async function resolveShortLink(ref) {
+  if (!/^https:\/\/s\.craft\.me\//.test(ref)) return ref;
+  const location = (await fetch(ref, { redirect: "manual" })).headers.get("location");
+  if (!location) throw new Error(`Craft 短链接没有返回跳转地址：${ref}`);
+  return location;
 }
 
 export function taskText(task) {
@@ -308,6 +316,7 @@ async function main() {
   const command = COMMANDS[positionals[0]];
   if (!command) throw new Error(`用法：tracker.mjs ${Object.keys(COMMANDS).join("|")}，参数见 SKILL.md`);
   requireOptions(values, command.required);
+  if (values.item) values.item = await resolveShortLink(values.item);
 
   const envFile = join(CRAFT_DIR, ".env.local");
   if (!process.env.CRAFT_API_KEY && existsSync(envFile)) process.loadEnvFile(envFile);
