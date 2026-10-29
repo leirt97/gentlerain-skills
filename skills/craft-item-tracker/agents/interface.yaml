@@ -1,0 +1,20 @@
+interface:
+  display_name: 想法、生活与工作事项
+  short_description: 在 Craft「事项跟踪」里新建事项、记进展、改状态并检查停滞事项
+  default_prompt: 使用 $craft-item-tracker 处理我的想法、生活和工作事项，先用 list 查重，写入后回读。
+compatibility:
+  canonical_format: agent-skills
+  adapter_targets:
+  - generic
+  activation:
+    mode: manual
+    paths: []
+  execution:
+    context: inline
+    shell: bash
+  trust:
+    source_tier: local
+    remote_inline_execution: forbid
+    remote_metadata_policy: allow-metadata-only
+  degradation:
+    generic: agent-skills-source

@@ -1,0 +1,60 @@
+{
+  "threshold": 0.65,
+  "positive_concepts": {
+    "tracker": {
+      "weight": 0.4,
+      "phrases": [
+        "想法",
+        "事项",
+        "这周",
+        "本周",
+        "停着",
+        "那件",
+        "的事",
+        "运维",
+        "那边"
+      ]
+    },
+    "progress": {
+      "weight": 0.6,
+      "phrases": [
+        "记一个",
+        "开始弄",
+        "谈妥",
+        "放一放",
+        "有哪些事",
+        "没动",
+        "做完",
+        "暂停",
+        "摸清楚",
+        "梳理",
+        "要人盯",
+        "接手"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "excluded": {
+      "weight": 0.8,
+      "exclusive": true,
+      "phrases": [
+        "itsaplan",
+        "缺陷",
+        "bug",
+        "PR",
+        "功能",
+        "代码",
+        "Skill 库",
+        "排版",
+        "日复盘",
+        "推荐",
+        "分页",
+        "建个"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "tracker",
+    "progress"
+  ]
+}
