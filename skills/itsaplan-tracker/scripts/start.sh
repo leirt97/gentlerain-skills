@@ -2,7 +2,7 @@
 # Starts the local itsaplan Docker instance and waits until api and web are healthy. Safe to rerun.
 # Usage: sh start.sh   (ITSAPLAN_DIR overrides the checkout path)
 set -eu
-dir=${ITSAPLAN_DIR:-/Users/cutesunday/D/Projects/itsaplan}
+dir=${ITSAPLAN_DIR:-$HOME/D/Projects/itsaplan}
 
 colima status >/dev/null 2>&1 || colima start
 cd "$dir"
